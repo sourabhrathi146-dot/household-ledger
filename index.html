@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" href="icon.svg">
 <title>Household Ledger</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
     --bg:#12181B; --surface:#1B2226; --surface-2:#161C1F; --border:#2A3236; --border-strong:#333F44;
@@ -68,6 +69,12 @@
   .entry-tag{font-size:10px;padding:1px 8px;border-radius:999px;border:1px solid var(--border-strong);color:var(--text-muted);}
   .empty{text-align:center;padding:32px 16px;color:var(--text-faint);font-size:13px;}
   .offline-note{font-size:11px;color:var(--text-faint);text-align:center;margin-top:24px;}
+  .drive-box{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);margin-bottom:14px;}
+  .drive-status{display:flex;align-items:center;gap:6px;}
+  .drive-dot{width:7px;height:7px;border-radius:50%;background:var(--text-faint);flex-shrink:0;}
+  .drive-dot.on{background:var(--green);}
+  .drive-dot.busy{background:var(--gold);}
+  .drive-dot.err{background:var(--red);}
   svg text{font-family:-apple-system,sans-serif;fill:var(--text-muted);}
 </style>
 </head>
@@ -97,6 +104,19 @@ const todayISO = () => new Date().toISOString().slice(0,10);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 const esc = s => (s||"").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+// ---- Google Drive backup config ----
+// Replace this with your own OAuth Client ID from Google Cloud Console
+// (APIs & Services > Credentials > Create Credentials > OAuth client ID > Web application).
+// Add this file's hosted URL (your GitHub Pages origin, e.g. https://yourname.github.io)
+// under "Authorized JavaScript origins". See the chat for the full setup walkthrough.
+const GOOGLE_CLIENT_ID = "540942890573-hd52hnd8on5jvddp1f131jgmetst16sl.apps.googleusercontent.com";
+const DRIVE_FILENAME = "household-ledger-backup.json";
+
+let driveAccessToken = null;
+let driveTokenClient = null;
+let driveStatus = "idle"; // idle | connecting | syncing | synced | error | offline-disabled
+let driveErrorMsg = "";
+
 let memoryFallback = {};
 let storageOK = true;
 function safeGet(key, def){
@@ -120,9 +140,15 @@ let state = {
   editingBudget: false,
 };
 
-function persist(){
+let driveSyncTimer = null;
+function persist(autoSync){
   safeSet("hl-expenses", state.expenses);
   safeSet("hl-budget", state.budget);
+  if (autoSync === false) return;
+  if (driveAccessToken && safeGet("hl-drive-fileid", null)) {
+    clearTimeout(driveSyncTimer);
+    driveSyncTimer = setTimeout(() => { driveUpload(); }, 1500);
+  }
 }
 
 function monthExpenses(){
@@ -206,10 +232,14 @@ function render(){
       </div>
     </header>
 
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:20px;">
-      <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="export-backup">Export backup</button>
-      <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="import-backup">Import backup</button>
-      <input type="file" id="import-file-input" accept="application/json" style="display:none;">
+    <div class="drive-box">
+      ${renderDriveStatus()}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${renderDriveButtons()}
+        <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="export-backup">Export backup</button>
+        <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="import-backup">Import backup</button>
+        <input type="file" id="import-file-input" accept="application/json" style="display:none;">
+      </div>
     </div>
 
     <section class="stats">
@@ -400,6 +430,140 @@ function renderTrendSvg(trend, color){
   </svg>`;
 }
 
+function renderDriveStatus(){
+  const fileId = safeGet("hl-drive-fileid", null);
+  const lastSync = safeGet("hl-drive-last-sync", null);
+  if (GOOGLE_CLIENT_ID.indexOf("PASTE_YOUR_CLIENT_ID") === 0) {
+    return `<div class="drive-status"><span class="drive-dot"></span>Google Drive backup not set up yet</div>`;
+  }
+  if (driveStatus === "error") {
+    return `<div class="drive-status"><span class="drive-dot err"></span>Drive error: ${esc(driveErrorMsg)}</div>`;
+  }
+  if (driveStatus === "connecting" || driveStatus === "syncing") {
+    return `<div class="drive-status"><span class="drive-dot busy"></span>${driveStatus === "connecting" ? "Connecting to Drive&hellip;" : "Syncing to Drive&hellip;"}</div>`;
+  }
+  if (driveAccessToken && fileId) {
+    const when = lastSync ? new Date(lastSync).toLocaleString("en-IN", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" }) : "not yet";
+    return `<div class="drive-status"><span class="drive-dot on"></span>Backed up to Drive &middot; last sync ${when}</div>`;
+  }
+  return `<div class="drive-status"><span class="drive-dot"></span>Not backed up to Drive on this device</div>`;
+}
+
+function renderDriveButtons(){
+  if (GOOGLE_CLIENT_ID.indexOf("PASTE_YOUR_CLIENT_ID") === 0) return "";
+  const fileId = safeGet("hl-drive-fileid", null);
+  if (driveAccessToken && fileId) {
+    return `
+      <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="sync-drive">Sync now</button>
+      <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="restore-drive">Restore latest from Drive</button>`;
+  }
+  return `
+    <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="connect-drive">Connect Google Drive</button>
+    <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="restore-drive">Restore from Drive (new device)</button>`;
+}
+
+function ensureDriveTokenClient(callback){
+  if (!window.google || !google.accounts || !google.accounts.oauth2) {
+    driveStatus = "error"; driveErrorMsg = "Google sign-in script didn't load (no internet?)"; render();
+    return;
+  }
+  if (!driveTokenClient) {
+    driveTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: "https://www.googleapis.com/auth/drive.file",
+      callback: (resp) => {
+        if (resp && resp.access_token) {
+          driveAccessToken = resp.access_token;
+          callback && callback();
+        } else {
+          driveStatus = "error"; driveErrorMsg = "Sign-in was cancelled or failed"; render();
+        }
+      },
+    });
+  }
+  driveTokenClient.requestAccessToken({ prompt: driveAccessToken ? "" : "consent" });
+}
+
+async function driveFindFileId(){
+  const q = encodeURIComponent(`name='${DRIVE_FILENAME}' and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)`, {
+    headers: { Authorization: `Bearer ${driveAccessToken}` },
+  });
+  if (!res.ok) throw new Error(`Drive lookup failed (${res.status})`);
+  const data = await res.json();
+  return (data.files && data.files[0]) ? data.files[0].id : null;
+}
+
+async function driveUpload(){
+  driveStatus = "syncing"; render();
+  try {
+    const payload = JSON.stringify({ expenses: state.expenses, budget: state.budget, exportedAt: new Date().toISOString() }, null, 2);
+    let fileId = safeGet("hl-drive-fileid", null);
+    if (!fileId) fileId = await driveFindFileId();
+
+    if (fileId) {
+      const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${driveAccessToken}`, "Content-Type": "application/json" },
+        body: payload,
+      });
+      if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+    } else {
+      const boundary = "hl_backup_boundary";
+      const metadata = { name: DRIVE_FILENAME, mimeType: "application/json" };
+      const body =
+        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+        `--${boundary}\r\nContent-Type: application/json\r\n\r\n${payload}\r\n--${boundary}--`;
+      const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${driveAccessToken}`, "Content-Type": `multipart/related; boundary=${boundary}` },
+        body,
+      });
+      if (!res.ok) throw new Error(`Create failed (${res.status})`);
+      const data = await res.json();
+      fileId = data.id;
+    }
+    safeSet("hl-drive-fileid", fileId);
+    safeSet("hl-drive-last-sync", new Date().toISOString());
+    driveStatus = "synced";
+  } catch (err) {
+    driveStatus = "error"; driveErrorMsg = err.message || "sync failed";
+  }
+  render();
+}
+
+async function driveRestore(){
+  driveStatus = "syncing"; render();
+  try {
+    let fileId = safeGet("hl-drive-fileid", null);
+    if (!fileId) fileId = await driveFindFileId();
+    if (!fileId) throw new Error("No backup file found in this Google account");
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { Authorization: `Bearer ${driveAccessToken}` },
+    });
+    if (!res.ok) throw new Error(`Restore failed (${res.status})`);
+    const data = await res.json();
+    if (!Array.isArray(data.expenses)) throw new Error("Backup file looks invalid");
+    const proceed = window.confirm(`Found a Drive backup with ${data.expenses.length} entries. This will replace everything currently on this device. Continue?`);
+    if (!proceed) { driveStatus = "synced"; render(); return; }
+    state.expenses = data.expenses;
+    state.budget = typeof data.budget === "number" ? data.budget : null;
+    persist(false);
+    safeSet("hl-drive-fileid", fileId);
+    safeSet("hl-drive-last-sync", new Date().toISOString());
+    driveStatus = "synced";
+    window.alert("Restored from Google Drive.");
+  } catch (err) {
+    driveStatus = "error"; driveErrorMsg = err.message || "restore failed";
+  }
+  render();
+}
+
+function connectDrive(){
+  driveStatus = "connecting"; render();
+  ensureDriveTokenClient(() => driveUpload());
+}
+
 function exportBackup(){
   const data = { expenses: state.expenses, budget: state.budget, exportedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -437,6 +601,9 @@ function attachHandlers(){
         case "save-budget": { const v=Number(document.getElementById("budget-draft").value); state.budget = v>0?v:null; state.editingBudget=false; persist(); render(); break; }
         case "export-backup": exportBackup(); break;
         case "import-backup": document.getElementById("import-file-input").click(); break;
+        case "connect-drive": connectDrive(); break;
+        case "sync-drive": driveUpload(); break;
+        case "restore-drive": driveAccessToken ? driveRestore() : ensureDriveTokenClient(() => driveRestore()); break;
       }
     };
   });
