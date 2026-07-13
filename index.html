@@ -12,7 +12,6 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" href="icon.svg">
 <title>Household Ledger</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
     --bg:#12181B; --surface:#1B2226; --surface-2:#161C1F; --border:#2A3236; --border-strong:#333F44;
@@ -59,8 +58,6 @@
   .cat-bar-value{width:70px;text-align:right;flex-shrink:0;}
   .tag-chip{font-size:12px;padding:4px 10px;border-radius:999px;cursor:pointer;border:1px solid var(--border-strong);background:transparent;color:var(--text-muted);}
   .tag-chip.active{border-color:var(--gold);background:rgba(201,162,39,.15);color:var(--gold);}
-  .day-group{margin-bottom:16px;}
-  .day-label{font-size:12px;color:var(--text-faint);margin-bottom:6px;}
   .entry-list{border:1px solid var(--border);border-radius:6px;overflow:hidden;}
   .entry{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--border);}
   .entry:first-child{border-top:none;}
@@ -68,13 +65,38 @@
   .entry-note{font-size:12px;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .entry-tag{font-size:10px;padding:1px 8px;border-radius:999px;border:1px solid var(--border-strong);color:var(--text-muted);}
   .empty{text-align:center;padding:32px 16px;color:var(--text-faint);font-size:13px;}
-  .offline-note{font-size:11px;color:var(--text-faint);text-align:center;margin-top:24px;}
-  .drive-box{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);margin-bottom:14px;}
   .drive-status{display:flex;align-items:center;gap:6px;}
   .drive-dot{width:7px;height:7px;border-radius:50%;background:var(--text-faint);flex-shrink:0;}
   .drive-dot.on{background:var(--green);}
   .drive-dot.busy{background:var(--gold);}
   .drive-dot.err{background:var(--red);}
+  .day-group{margin-bottom:10px;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+  .day-group summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface-2);}
+  .day-group summary::-webkit-details-marker{display:none;}
+  .day-summary-left{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);}
+  .day-summary-right{display:flex;align-items:center;gap:8px;}
+  .day-chevron{color:var(--text-faint);font-size:11px;transition:transform .15s;display:inline-block;}
+  .day-group[open] .day-chevron{transform:rotate(180deg);}
+  .day-group .entry-list{border:none;border-top:1px solid var(--border);border-radius:0;}
+  .hamburger-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0;}
+  .hamburger-btn span{display:block;width:16px;height:2px;background:var(--text-muted);position:relative;}
+  .hamburger-btn span::before,.hamburger-btn span::after{content:"";position:absolute;left:0;width:16px;height:2px;background:var(--text-muted);}
+  .hamburger-btn span::before{top:-5px;} .hamburger-btn span::after{top:5px;}
+  .hamburger-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--text-faint);border:1px solid var(--surface);}
+  .hamburger-dot.on{background:var(--green);}
+  .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s;}
+  .drawer-overlay.open{opacity:1;pointer-events:auto;}
+  .drawer-panel{position:fixed;top:0;right:0;bottom:0;width:min(300px,84vw);background:var(--surface);border-left:1px solid var(--border-strong);z-index:41;transform:translateX(100%);transition:transform .22s ease;padding:18px;overflow-y:auto;}
+  .drawer-panel.open{transform:translateX(0);}
+  .drawer-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+  .drawer-title{font-size:15px;font-weight:600;}
+  .drawer-close{background:none;border:none;color:var(--text-faint);font-size:20px;cursor:pointer;padding:4px;}
+  .drawer-section{margin-bottom:20px;}
+  .drawer-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:10px;}
+  .drawer-btn{width:100%;text-align:left;background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);border-radius:6px;padding:10px 12px;font-size:13px;cursor:pointer;margin-bottom:8px;display:block;}
+  .drawer-btn:active{background:var(--border);}
+  .drawer-note{font-size:11px;color:var(--text-faint);line-height:1.5;}
+  .offline-note{font-size:11px;color:var(--text-faint);text-align:center;margin-top:24px;}
   svg text{font-family:-apple-system,sans-serif;fill:var(--text-muted);}
 </style>
 </head>
@@ -113,7 +135,6 @@ const GOOGLE_CLIENT_ID = "540942890573-hd52hnd8on5jvddp1f131jgmetst16sl.apps.goo
 const DRIVE_FILENAME = "household-ledger-backup.json";
 
 let driveAccessToken = null;
-let driveTokenClient = null;
 let driveStatus = "idle"; // idle | connecting | syncing | synced | error | offline-disabled
 let driveErrorMsg = "";
 
@@ -138,6 +159,8 @@ let state = {
   trendTag: "all",
   trendRange: 6,
   editingBudget: false,
+  drawerOpen: false,
+  openDays: new Set(),
 };
 
 let driveSyncTimer = null;
@@ -225,20 +248,41 @@ function render(){
         <div class="eyebrow">Household ledger</div>
         <h1 class="display">Where the money went</h1>
       </div>
-      <div class="month-nav">
-        <button data-action="prev-month">&#8249;</button>
-        <span class="month-label mono">${monthLabel(state.cursor)}</span>
-        <button data-action="next-month">&#8250;</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="month-nav">
+          <button data-action="prev-month">&#8249;</button>
+          <span class="month-label mono">${monthLabel(state.cursor)}</span>
+          <button data-action="next-month">&#8250;</button>
+        </div>
+        <button class="hamburger-btn" data-action="toggle-drawer" aria-label="Menu">
+          <span></span>
+          <span class="hamburger-dot ${driveAccessToken ? "on" : ""}"></span>
+        </button>
       </div>
     </header>
 
-    <div class="drive-box">
-      ${renderDriveStatus()}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        ${renderDriveButtons()}
-        <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="export-backup">Export backup</button>
-        <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="import-backup">Import backup</button>
+    <div class="drawer-overlay ${state.drawerOpen ? "open" : ""}" data-action="close-drawer"></div>
+    <div class="drawer-panel ${state.drawerOpen ? "open" : ""}">
+      <div class="drawer-header">
+        <div class="drawer-title">Backup &amp; sync</div>
+        <button class="drawer-close" data-action="close-drawer">&times;</button>
+      </div>
+      <div class="drawer-section">
+        <div class="drawer-section-title">Google Drive</div>
+        <div class="drive-status" style="margin-bottom:10px;">${renderDriveStatus()}</div>
+        ${renderDriveButtons("drawer-btn")}
+      </div>
+      <div class="drawer-section">
+        <div class="drawer-section-title">Manual backup</div>
+        <button class="drawer-btn" data-action="export-backup">Export backup (.json)</button>
+        <button class="drawer-btn" data-action="import-backup">Import backup (.json)</button>
         <input type="file" id="import-file-input" accept="application/json" style="display:none;">
+        <div class="drawer-note">Keep this even with Drive connected &mdash; it's an instant local copy you can email or save yourself, no sign-in needed.</div>
+      </div>
+      <div class="drawer-section">
+        <div class="drawer-section-title">Export</div>
+        <button class="drawer-btn" data-action="export-excel">Export to Excel (.csv)</button>
+        <div class="drawer-note">Downloads every entry you've ever logged, all months, ready to open in Excel or Google Sheets.</div>
       </div>
     </div>
 
@@ -315,9 +359,21 @@ function render(){
         </div>
       </div>
       ${groupedEntries.length===0 ? `<div class="stub empty">${state.listFilterTag ? `No "${esc(state.listFilterTag)}" entries for ${monthLabel(state.cursor)}.` : `Nothing logged for ${monthLabel(state.cursor)} yet. Add your first entry above.`}</div>` :
-        groupedEntries.map(([d,items])=>`
-          <div class="day-group">
-            <div class="day-label mono">${new Date(d).toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})}</div>
+        groupedEntries.map(([d,items], idx)=>{
+          const dayTotal = items.reduce((s,e)=>s+Number(e.amount),0);
+          const isOpen = state.openDays.has(d) || idx===0;
+          return `
+          <details class="day-group" data-date="${esc(d)}" ${isOpen ? "open" : ""}>
+            <summary>
+              <span class="day-summary-left">
+                <span class="mono">${new Date(d).toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})}</span>
+                <span>&middot; ${items.length} ${items.length===1?"entry":"entries"}</span>
+              </span>
+              <span class="day-summary-right">
+                <span class="mono" style="font-size:13px;font-weight:600;">${inr(dayTotal)}</span>
+                <span class="day-chevron">&#9662;</span>
+              </span>
+            </summary>
             <div class="entry-list">
               ${items.map(e=>{
                 const cat = catById(e.category);
@@ -333,7 +389,8 @@ function render(){
                 </div>`;
               }).join("")}
             </div>
-          </div>`).join("")}
+          </details>`;
+        }).join("")}
     </section>
 
     <div class="offline-note">${storageOK ? "Installed as an app &middot; works fully offline &middot; data stays on this device. Use \"Export backup\" occasionally as a safety net." : "&#9888; Local storage is blocked in this browser &mdash; use \"Export backup\" / \"Import backup\" to save and restore manually."}</div>
@@ -449,39 +506,70 @@ function renderDriveStatus(){
   return `<div class="drive-status"><span class="drive-dot"></span>Not backed up to Drive on this device</div>`;
 }
 
-function renderDriveButtons(){
+function renderDriveButtons(cls){
+  const btnClass = cls || "btn-ghost";
+  const btnStyle = cls ? "" : ' style="padding:6px 12px;font-size:12px;"';
   if (GOOGLE_CLIENT_ID.indexOf("PASTE_YOUR_CLIENT_ID") === 0) return "";
   const fileId = safeGet("hl-drive-fileid", null);
   if (driveAccessToken && fileId) {
     return `
-      <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="sync-drive">Sync now</button>
-      <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="restore-drive">Restore latest from Drive</button>`;
+      <button class="${btnClass}"${btnStyle} data-action="sync-drive">Sync now</button>
+      <button class="${btnClass}"${btnStyle} data-action="restore-drive">Restore latest from Drive</button>
+      <button class="${btnClass}"${btnStyle} data-action="disconnect-drive">Disconnect Drive</button>`;
   }
   return `
-    <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="connect-drive">Connect Google Drive</button>
-    <button class="btn-ghost" style="padding:6px 12px;font-size:12px;" data-action="restore-drive">Restore from Drive (new device)</button>`;
+    <button class="${btnClass}"${btnStyle} data-action="connect-drive">Connect Google Drive</button>
+    <button class="${btnClass}"${btnStyle} data-action="restore-drive">Restore from Drive (new device)</button>`;
 }
 
-function ensureDriveTokenClient(callback){
-  if (!window.google || !google.accounts || !google.accounts.oauth2) {
-    driveStatus = "error"; driveErrorMsg = "Google sign-in script didn't load (no internet?)"; render();
-    return;
+function driveRedirectUri(){
+  return location.origin + location.pathname;
+}
+
+function driveAuthUrl(promptMode, action){
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: driveRedirectUri(),
+    response_type: "token",
+    scope: "https://www.googleapis.com/auth/drive.file",
+    include_granted_scopes: "true",
+    state: action || "connect",
+  });
+  if (promptMode) params.set("prompt", promptMode);
+  return "https://accounts.google.com/o/oauth2/v2/auth?" + params.toString();
+}
+
+function goToDriveAuth(promptMode, action){
+  window.location.href = driveAuthUrl(promptMode, action);
+}
+
+// Runs once on page load. If Google just redirected back here with a token
+// (or an error) in the URL, this reads it and cleans the address bar.
+function consumeDriveAuthRedirect(){
+  const hash = location.hash || "";
+  if (hash.indexOf("access_token=") === -1 && hash.indexOf("error=") === -1) return false;
+  const params = new URLSearchParams(hash.slice(1));
+  const action = params.get("state") || "connect";
+  history.replaceState(null, "", location.pathname + location.search);
+
+  const token = params.get("access_token");
+  if (token) {
+    driveAccessToken = token;
+    const expiresInMs = (Number(params.get("expires_in")) || 3500) * 1000;
+    safeSet("hl-drive-token", token);
+    safeSet("hl-drive-token-expiry", Date.now() + expiresInMs - 60000);
+    if (action === "restore") driveRestore();
+    else if (action === "connect") driveUpload();
+    else { driveStatus = "synced"; render(); } // action === "silent"
+  } else if (action !== "silent") {
+    // Only show an error for something the person actually clicked; a failed
+    // silent background attempt should stay invisible and just leave them disconnected.
+    driveStatus = "error"; driveErrorMsg = params.get("error") || "sign-in was cancelled";
+    render();
+  } else {
+    driveStatus = "idle"; render();
   }
-  if (!driveTokenClient) {
-    driveTokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: "https://www.googleapis.com/auth/drive.file",
-      callback: (resp) => {
-        if (resp && resp.access_token) {
-          driveAccessToken = resp.access_token;
-          callback && callback();
-        } else {
-          driveStatus = "error"; driveErrorMsg = "Sign-in was cancelled or failed"; render();
-        }
-      },
-    });
-  }
-  driveTokenClient.requestAccessToken({ prompt: driveAccessToken ? "" : "consent" });
+  return true;
 }
 
 async function driveFindFileId(){
@@ -507,6 +595,7 @@ async function driveUpload(){
         headers: { Authorization: `Bearer ${driveAccessToken}`, "Content-Type": "application/json" },
         body: payload,
       });
+      if (res.status === 401) return reauthThen(() => driveUpload());
       if (!res.ok) throw new Error(`Upload failed (${res.status})`);
     } else {
       const boundary = "hl_backup_boundary";
@@ -519,6 +608,7 @@ async function driveUpload(){
         headers: { Authorization: `Bearer ${driveAccessToken}`, "Content-Type": `multipart/related; boundary=${boundary}` },
         body,
       });
+      if (res.status === 401) return reauthThen(() => driveUpload());
       if (!res.ok) throw new Error(`Create failed (${res.status})`);
       const data = await res.json();
       fileId = data.id;
@@ -541,6 +631,7 @@ async function driveRestore(){
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
       headers: { Authorization: `Bearer ${driveAccessToken}` },
     });
+    if (res.status === 401) return reauthThen(() => driveRestore());
     if (!res.ok) throw new Error(`Restore failed (${res.status})`);
     const data = await res.json();
     if (!Array.isArray(data.expenses)) throw new Error("Backup file looks invalid");
@@ -559,9 +650,23 @@ async function driveRestore(){
   render();
 }
 
+// If a request comes back 401 (token died mid-session), try one silent
+// re-auth redirect before giving up and asking the person to reconnect.
+function reauthThen(retryAction){
+  driveAccessToken = null;
+  safeSet("hl-drive-token", null);
+  safeSet("hl-drive-token-expiry", 0);
+  if (navigator.onLine) {
+    safeSet("hl-drive-retry-action", retryAction === driveRestore ? "restore" : "connect");
+    goToDriveAuth("none", "silent");
+  } else {
+    driveStatus = "error"; driveErrorMsg = "signed out \u2014 reconnect when back online"; render();
+  }
+}
+
 function connectDrive(){
   driveStatus = "connecting"; render();
-  ensureDriveTokenClient(() => driveUpload());
+  goToDriveAuth(undefined, "connect");
 }
 
 function exportBackup(){
@@ -571,6 +676,31 @@ function exportBackup(){
   const a = document.createElement("a");
   a.href = url;
   a.download = `household-ledger-backup-${todayISO()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function csvCell(v){
+  const s = String(v==null?"":v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+}
+
+function exportExcel(){
+  const rows = [["Date","Category","Tag","Note","Amount (INR)"]];
+  const sorted = [...state.expenses].sort((a,b)=>a.date.localeCompare(b.date));
+  sorted.forEach(e => {
+    rows.push([e.date, catById(e.category).label, e.tag||"", e.note||"", Number(e.amount)]);
+  });
+  const total = sorted.reduce((s,e)=>s+Number(e.amount),0);
+  rows.push(["", "", "", "TOTAL", total]);
+  const csv = rows.map(r => r.map(csvCell).join(",")).join("\r\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `household-ledger-all-entries-${todayISO()}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -601,10 +731,30 @@ function attachHandlers(){
         case "save-budget": { const v=Number(document.getElementById("budget-draft").value); state.budget = v>0?v:null; state.editingBudget=false; persist(); render(); break; }
         case "export-backup": exportBackup(); break;
         case "import-backup": document.getElementById("import-file-input").click(); break;
+        case "export-excel": exportExcel(); break;
         case "connect-drive": connectDrive(); break;
         case "sync-drive": driveUpload(); break;
-        case "restore-drive": driveAccessToken ? driveRestore() : ensureDriveTokenClient(() => driveRestore()); break;
+        case "restore-drive": driveAccessToken ? driveRestore() : goToDriveAuth(undefined, "restore"); break;
+        case "disconnect-drive": {
+          const ok = window.confirm("Disconnect Google Drive? Your data stays on this device and in the Drive backup file \u2014 you just won't auto-sync until you reconnect.");
+          if (!ok) break;
+          driveAccessToken = null;
+          safeSet("hl-drive-token", null);
+          safeSet("hl-drive-token-expiry", 0);
+          driveStatus = "idle";
+          render();
+          break;
+        }
+        case "toggle-drawer": state.drawerOpen = !state.drawerOpen; render(); break;
+        case "close-drawer": state.drawerOpen = false; render(); break;
       }
+    };
+  });
+
+  app.querySelectorAll("details.day-group").forEach(el=>{
+    el.ontoggle = () => {
+      const d = el.dataset.date;
+      if (el.open) state.openDays.add(d); else state.openDays.delete(d);
     };
   });
 
@@ -663,6 +813,26 @@ try {
     'Something went wrong loading the ledger: ' + (err && err.message ? err.message : "unknown error") +
     '<br><br><span style="color:#8E9490;font-size:13px;">Try opening this file directly in your browser (not inside another app\'s preview), or reload the page.</span></div>';
 }
+
+// If we just landed back here from Google's sign-in page, finish that flow first.
+// Otherwise: reuse a still-valid saved token, or (if this device was connected
+// before and we're online) try one silent background reconnect with no popup
+// and no visible prompt.
+(function restoreDriveSession(){
+  if (consumeDriveAuthRedirect()) return;
+  const savedToken = safeGet("hl-drive-token", null);
+  const expiry = safeGet("hl-drive-token-expiry", 0);
+  const fileId = safeGet("hl-drive-fileid", null);
+  if (savedToken && Date.now() < expiry) {
+    driveAccessToken = savedToken;
+    driveStatus = "synced";
+    render();
+    return;
+  }
+  if (fileId && navigator.onLine) {
+    goToDriveAuth("none", "silent");
+  }
+})();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
