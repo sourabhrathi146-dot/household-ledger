@@ -361,7 +361,7 @@ function render(){
       ${groupedEntries.length===0 ? `<div class="stub empty">${state.listFilterTag ? `No "${esc(state.listFilterTag)}" entries for ${monthLabel(state.cursor)}.` : `Nothing logged for ${monthLabel(state.cursor)} yet. Add your first entry above.`}</div>` :
         groupedEntries.map(([d,items], idx)=>{
           const dayTotal = items.reduce((s,e)=>s+Number(e.amount),0);
-          const isOpen = state.openDays.has(d) || idx===0;
+          const isOpen = state.openDays.has(d);
           return `
           <details class="day-group" data-date="${esc(d)}" ${isOpen ? "open" : ""}>
             <summary>
