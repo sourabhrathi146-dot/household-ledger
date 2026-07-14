@@ -523,7 +523,12 @@ function renderDriveButtons(cls){
 }
 
 function driveRedirectUri(){
-  return location.origin + location.pathname;
+  // Normalize so the address sent to Google is always the same, whether the
+  // app was opened as ".../household-ledger/" or ".../household-ledger/index.html".
+  let path = location.pathname;
+  if (path.endsWith("index.html")) path = path.slice(0, -("index.html".length));
+  if (!path.endsWith("/")) path += "/";
+  return location.origin + path;
 }
 
 function driveAuthUrl(promptMode, action){
