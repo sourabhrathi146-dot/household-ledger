@@ -219,6 +219,7 @@ let state = {
   trendRange: 6,
   editingBudget: false,
   drawerOpen: false,
+  entriesListOpen: false,
   openDays: new Set(),
 };
 
@@ -425,13 +426,14 @@ function render(){
       <div class="chart-row">
         <div style="display:flex;align-items:center;gap:10px;">
           <div class="section-title" style="margin:0;">Entries this month</div>
-          ${groupedEntries.length>0 ? `<button class="btn-ghost" style="padding:4px 10px;font-size:11px;" data-action="toggle-all-days">${lastDayKeys.length>0 && lastDayKeys.every(d=>state.openDays.has(d)) ? "Hide details" : "Get details"}</button>` : ""}
+          ${groupedEntries.length>0 ? `<button class="btn-ghost" style="padding:4px 10px;font-size:11px;" data-action="toggle-all-days">${state.entriesListOpen ? "Hide details" : "Get details"}</button>` : ""}
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${allTags().map(t=>`<button class="tag-chip ${state.listFilterTag===t?"active":""}" data-action="filter-tag" data-tag="${esc(t)}">${esc(t)}${tagTotalsThisMonth[t]?` <span class="mono">${inr(tagTotalsThisMonth[t])}</span>`:""}</button>`).join("")}
         </div>
       </div>
       ${groupedEntries.length===0 ? `<div class="stub empty">${state.listFilterTag ? `No "${esc(state.listFilterTag)}" entries for ${monthLabel(state.cursor)}.` : `Nothing logged for ${monthLabel(state.cursor)} yet. Add your first entry above.`}</div>` :
+        !state.entriesListOpen ? `<div class="stub empty" style="cursor:pointer;" data-action="toggle-all-days">${groupedEntries.length} day${groupedEntries.length===1?"":"s"} logged this month &middot; ${listExpenses.length} ${listExpenses.length===1?"entry":"entries"} total. Tap "Get details" to browse by date.</div>` :
         groupedEntries.map(([d,items], idx)=>{
           const dayTotal = items.reduce((s,e)=>s+Number(e.amount),0);
           const isOpen = state.openDays.has(d);
@@ -887,9 +889,8 @@ function attachHandlers(){
         case "toggle-drawer": state.drawerOpen = !state.drawerOpen; render(); break;
         case "close-drawer": state.drawerOpen = false; render(); break;
         case "toggle-all-days": {
-          const allOpen = lastDayKeys.length>0 && lastDayKeys.every(d=>state.openDays.has(d));
-          if (allOpen) state.openDays.clear();
-          else lastDayKeys.forEach(d=>state.openDays.add(d));
+          state.entriesListOpen = !state.entriesListOpen;
+          if (!state.entriesListOpen) state.openDays.clear();
           render();
           break;
         }
