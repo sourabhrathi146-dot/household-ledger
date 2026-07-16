@@ -36,10 +36,11 @@
   .stat-label{font-size:11px;color:var(--text-muted);margin-bottom:6px;}
   .stat-value{font-size:19px;font-weight:600;}
   .bar-track{height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden;}
-  .bar-fill{height:100%;background:var(--gold);}
-  .btn{background:var(--gold);color:var(--bg);border:none;border-radius:6px;padding:9px 16px;font-weight:600;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
-  .btn:active{background:var(--gold-bright);}
-  .btn-ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border-strong);border-radius:6px;padding:9px 16px;font-size:14px;cursor:pointer;}
+  .bar-fill{height:100%;background:var(--gold);transition:width .5s cubic-bezier(.22,1,.36,1);}
+  .btn{background:var(--gold);color:var(--bg);border:none;border-radius:6px;padding:9px 16px;font-weight:600;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:transform .1s ease;}
+  .btn:active{background:var(--gold-bright);transform:scale(.97);}
+  .btn-ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border-strong);border-radius:6px;padding:9px 16px;font-size:14px;cursor:pointer;transition:transform .1s ease;}
+  .btn-ghost:active{transform:scale(.97);}
   .btn-icon{background:none;border:none;color:var(--text-faint);cursor:pointer;padding:6px;border-radius:4px;font-size:15px;}
   .btn-icon:active{background:var(--surface-2);color:var(--text);}
   input,select{background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);border-radius:6px;padding:9px 11px;font-size:14px;width:100%;font-family:inherit;}
@@ -50,16 +51,19 @@
   section{margin-bottom:24px;}
   .section-title{font-size:13px;color:var(--text-muted);margin-bottom:10px;}
   .chart-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;}
-  .cat-bar-item{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;}
+  .cat-bar-item{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;opacity:0;animation:fade-up .4s ease forwards;animation-delay:calc(var(--stagger,0) * 45ms);}
   .cat-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
   .cat-bar-track{flex:1;height:14px;background:var(--surface-2);border-radius:3px;overflow:hidden;}
-  .cat-bar-fill{height:100%;border-radius:3px;}
-  .cat-bar-label{width:90px;flex-shrink:0;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cat-bar-fill{height:100%;border-radius:3px;transition:width .5s cubic-bezier(.22,1,.36,1);}
+  .cat-bar-label{width:104px;flex-shrink:0;display:flex;align-items:center;gap:6px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cat-bar-value{width:70px;text-align:right;flex-shrink:0;}
+  .cat-badge{border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .cat-breakdown-row{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+  .donut-seg{animation:donut-grow .7s cubic-bezier(.22,1,.36,1) backwards;}
   .tag-chip{font-size:12px;padding:4px 10px;border-radius:999px;cursor:pointer;border:1px solid var(--border-strong);background:transparent;color:var(--text-muted);}
   .tag-chip.active{border-color:var(--gold);background:rgba(201,162,39,.15);color:var(--gold);}
   .entry-list{border:1px solid var(--border);border-radius:6px;overflow:hidden;}
-  .entry{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--border);}
+  .entry{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--border);opacity:0;animation:fade-up .35s ease forwards;animation-delay:calc(var(--stagger,0) * 40ms);}
   .entry:first-child{border-top:none;}
   .entry-name{font-size:14px;display:flex;align-items:center;gap:8px;}
   .entry-note{font-size:12px;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -79,10 +83,7 @@
   .day-group[open] .day-chevron{transform:rotate(180deg);}
   .day-group .entry-list{border:none;border-top:1px solid var(--border);border-radius:0;}
   .hamburger-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0;}
-  .hamburger-btn span{display:block;width:16px;height:2px;background:var(--text-muted);position:relative;}
-  .hamburger-btn span::before,.hamburger-btn span::after{content:"";position:absolute;left:0;width:16px;height:2px;background:var(--text-muted);}
-  .hamburger-btn span::before{top:-5px;} .hamburger-btn span::after{top:5px;}
-  .hamburger-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--text-faint);border:1px solid var(--surface);}
+  .hamburger-dot{position:absolute;bottom:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--text-faint);border:2px solid var(--surface);}
   .hamburger-dot.on{background:var(--green);}
   .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s;}
   .drawer-overlay.open{opacity:1;pointer-events:auto;}
@@ -98,12 +99,70 @@
   .drawer-note{font-size:11px;color:var(--text-faint);line-height:1.5;}
   .offline-note{font-size:11px;color:var(--text-faint);text-align:center;margin-top:24px;}
   svg text{font-family:-apple-system,sans-serif;fill:var(--text-muted);}
+  @keyframes fade-up{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes donut-grow{from{stroke-width:0;}to{stroke-width:13;}}
+  .day-group .entry-list{animation:fade-up .25s ease;}
+  @media (prefers-reduced-motion: reduce){
+    .cat-bar-item,.entry,.donut-seg,.day-group .entry-list{animation:none !important;opacity:1 !important;}
+    .bar-fill,.cat-bar-fill,.drawer-panel,.drawer-overlay,.day-chevron{transition:none !important;}
+  }
 </style>
 </head>
 <body>
 <div id="app"></div>
 
 <script>
+const CAT_ICON_PATHS = {
+  electricity: '<path d="M9.3 1.2 3.4 9.3h3.9L6.3 15l6.3-8.9H8.6l.7-4.9z"/>',
+  grocery: '<path d="M3.2 6.2h9.6l-.9 6.9a1.1 1.1 0 0 1-1.1 1H5.2a1.1 1.1 0 0 1-1.1-1l-.9-6.9z"/><path d="M6 6.2a2 2 0 0 1 4 0" fill="none" stroke-width="1.3" stroke="currentColor"/>',
+  water: '<path d="M8 1.8s4.6 5.7 4.6 8.8a4.6 4.6 0 1 1-9.2 0C3.4 7.5 8 1.8 8 1.8z"/>',
+  rent: '<path d="M8 1.8 2 7v7.2h3.7V9.6h4.6v4.6H14V7L8 1.8z"/>',
+  internet: '<circle cx="8" cy="12.6" r="1.1"/><path d="M4.6 9.8a4.9 4.9 0 0 1 6.8 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2.1 7.2a8.6 8.6 0 0 1 11.8 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+  transport: '<path d="M3.1 10.4 4 6.6a1.4 1.4 0 0 1 1.4-1h5.2a1.4 1.4 0 0 1 1.4 1l.9 3.8" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="2.2" y="10.2" width="11.6" height="2.8" rx="1"/><circle cx="5" cy="14" r="1.15"/><circle cx="11" cy="14" r="1.15"/>',
+  dining: '<path d="M5.1 1.8v4.6M6.4 1.8v4.6M5.75 6.4v7.8" stroke="currentColor" stroke-width="1.25" fill="none" stroke-linecap="round"/><path d="M10.6 1.8c0 1.8-1 2.6-1 4.3s.9 1.8.9 1.8v6.1" stroke="currentColor" stroke-width="1.25" fill="none" stroke-linecap="round"/>',
+  medical: '<path d="M6.4 1.9h3.2v4.3H14v3.2H9.6v4.3H6.4V9.4H2V6.2h4.4V1.9z"/>',
+  entertainment: '<path d="M2 5.1a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1.3a1.3 1.3 0 0 0 0 2.5V10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8.9a1.3 1.3 0 0 0 0-2.5V5.1z"/>',
+  other: '<circle cx="8" cy="8" r="2.6"/><circle cx="8" cy="8" r="4.6" fill="none" stroke="currentColor" stroke-width="1"/>',
+};
+
+function hexToRgba(hex, alpha){
+  const h = hex.replace("#","");
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function catIconSvg(cat, size){
+  const s = size || 15;
+  return `<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="${cat.color}" style="flex-shrink:0;">${CAT_ICON_PATHS[cat.id] || CAT_ICON_PATHS.other}</svg>`;
+}
+
+function catBadge(cat, size){
+  const px = size || 28;
+  return `<span class="cat-badge" style="width:${px}px;height:${px}px;background:${hexToRgba(cat.color,0.16)};">${catIconSvg(cat, Math.round(px*0.52))}</span>`;
+}
+
+const inrCompact = n => new Intl.NumberFormat("en-IN",{notation:"compact",maximumFractionDigits:1}).format(n||0);
+
+function renderCategoryDonut(byCategory, total){
+  const positive = byCategory.filter(c=>c.total>0);
+  if (!positive.length || total<=0) return "";
+  const r = 42, cx = 54, cy = 54, sw = 13, circumference = 2*Math.PI*r;
+  let offset = 0;
+  const segs = positive.map(c=>{
+    const len = Math.max((c.total/total)*circumference, positive.length>1 ? 2 : circumference);
+    const gap = positive.length>1 ? 1.5 : 0;
+    const dash = Math.max(len-gap, 1);
+    const circle = `<circle class="donut-seg" cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${c.color}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${dash} ${circumference-dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"></circle>`;
+    offset += len;
+    return circle;
+  }).join("");
+  return `<svg viewBox="0 0 108 108" width="108" height="108" style="flex-shrink:0;">
+    ${segs}
+    <text x="${cx}" y="${cy-2}" text-anchor="middle" font-size="14" font-weight="600" fill="var(--text)" font-family="ui-monospace,SFMono-Regular,monospace">${esc(inrCompact(total))}</text>
+    <text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="8" fill="var(--text-faint)">${positive.length} categor${positive.length===1?"y":"ies"}</text>
+  </svg>`;
+}
+
 const CATEGORIES = [
   { id:"electricity", label:"Electricity", color:"#C9A227" },
   { id:"grocery", label:"Grocery", color:"#4F9C87" },
@@ -164,6 +223,7 @@ let state = {
 };
 
 let driveSyncTimer = null;
+let lastDayKeys = [];
 function persist(autoSync){
   safeSet("hl-expenses", state.expenses);
   safeSet("hl-budget", state.budget);
@@ -210,6 +270,7 @@ function render(){
   const grouped = {};
   listExpenses.forEach(e=>{ (grouped[e.date] = grouped[e.date]||[]).push(e); });
   const groupedEntries = Object.entries(grouped).sort((a,b)=>b[0].localeCompare(a[0]));
+  lastDayKeys = groupedEntries.map(([d])=>d);
 
   const earliest = state.expenses.length ? state.expenses.reduce((min,e)=> e.date<min?e.date:min, state.expenses[0].date).slice(0,7) : null;
   let span = state.trendRange;
@@ -255,7 +316,11 @@ function render(){
           <button data-action="next-month">&#8250;</button>
         </div>
         <button class="hamburger-btn" data-action="toggle-drawer" aria-label="Menu">
-          <span></span>
+          <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+            <line x1="1" y1="1" x2="17" y2="1" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"/>
+            <line x1="1" y1="7" x2="17" y2="7" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"/>
+            <line x1="1" y1="13" x2="17" y2="13" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
           <span class="hamburger-dot ${driveAccessToken ? "on" : ""}"></span>
         </button>
       </div>
@@ -304,7 +369,7 @@ function render(){
       </div>
       <div class="stub">
         <div class="stat-label">Top category</div>
-        ${topCategory ? `<div style="display:flex;align-items:center;gap:8px;font-size:14px;"><span class="cat-dot" style="background:${topCategory.color}"></span>${esc(topCategory.label)}</div>` : `<div style="font-size:13px;color:var(--text-faint);">No entries yet</div>`}
+        ${topCategory ? `<div style="display:flex;align-items:center;gap:8px;font-size:14px;">${catBadge(topCategory,24)}${esc(topCategory.label)}</div>` : `<div style="font-size:13px;color:var(--text-faint);">No entries yet</div>`}
       </div>
     </section>
 
@@ -312,12 +377,17 @@ function render(){
       <div class="stub">
         <div class="section-title">Spend by category</div>
         ${byCategory.length===0 ? `<div style="font-size:13px;color:var(--text-faint);padding:12px 0;">Add an entry to see the breakdown.</div>` :
-          byCategory.map(c=>`
-            <div class="cat-bar-item">
-              <span class="cat-bar-label"><span class="cat-dot" style="background:${c.color};display:inline-block;margin-right:6px;"></span>${esc(c.label)}</span>
-              <span class="cat-bar-track"><span class="cat-bar-fill" style="width:${(() => { const maxAbs = Math.max(...byCategory.map(c=>Math.abs(c.total)), 1); return Math.max((Math.abs(c.total)/maxAbs)*100, 4); })()}%;background:${c.color}${c.total<0?";opacity:.5":""}"></span></span>
-              <span class="cat-bar-value mono">${inr(c.total)}</span>
-            </div>`).join("")}
+          `<div class="cat-breakdown-row">
+            ${renderCategoryDonut(byCategory, total)}
+            <div style="flex:1;min-width:180px;">
+              ${byCategory.map((c,i)=>`
+                <div class="cat-bar-item" style="--stagger:${i}">
+                  <span class="cat-bar-label">${catIconSvg(c,13)}${esc(c.label)}</span>
+                  <span class="cat-bar-track"><span class="cat-bar-fill" style="width:${(() => { const maxAbs = Math.max(...byCategory.map(c=>Math.abs(c.total)), 1); return Math.max((Math.abs(c.total)/maxAbs)*100, 4); })()}%;background:${c.color}${c.total<0?";opacity:.5":""}"></span></span>
+                  <span class="cat-bar-value mono">${inr(c.total)}</span>
+                </div>`).join("")}
+            </div>
+          </div>`}
       </div>
     </section>
 
@@ -353,7 +423,10 @@ function render(){
 
     <section>
       <div class="chart-row">
-        <div class="section-title" style="margin:0;">Entries this month</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="section-title" style="margin:0;">Entries this month</div>
+          ${groupedEntries.length>0 ? `<button class="btn-ghost" style="padding:4px 10px;font-size:11px;" data-action="toggle-all-days">${lastDayKeys.length>0 && lastDayKeys.every(d=>state.openDays.has(d)) ? "Hide details" : "Get details"}</button>` : ""}
+        </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${allTags().map(t=>`<button class="tag-chip ${state.listFilterTag===t?"active":""}" data-action="filter-tag" data-tag="${esc(t)}">${esc(t)}${tagTotalsThisMonth[t]?` <span class="mono">${inr(tagTotalsThisMonth[t])}</span>`:""}</button>`).join("")}
         </div>
@@ -375,10 +448,10 @@ function render(){
               </span>
             </summary>
             <div class="entry-list">
-              ${items.map(e=>{
+              ${items.map((e,ei)=>{
                 const cat = catById(e.category);
-                return `<div class="entry">
-                  <span class="cat-dot" style="background:${cat.color}"></span>
+                return `<div class="entry" style="--stagger:${ei}">
+                  ${catBadge(cat, 32)}
                   <div style="flex:1;min-width:0;">
                     <div class="entry-name">${esc(cat.label)} ${e.tag?`<span class="entry-tag">${esc(e.tag)}</span>`:""}</div>
                     ${e.note?`<div class="entry-note">${esc(e.note)}</div>`:""}
@@ -455,18 +528,21 @@ function renderForm(state, tags){
   </form>`;
 }
 
-function renderTrendSvg(trend, color){
+function renderTrendSvg(trend, color, opts){
+  opts = opts || {};
   color = color || "#C9A227";
+  const id = opts.id || "trend-svg";
+  const H = opts.height || 180;
   if(trend.every(t=>t.total===0) && trend.length<=1){
     return `<div style="font-size:13px;color:var(--text-faint);padding:20px 0;">Not enough data yet.</div>`;
   }
-  const W = 640, H = 180, padL = 46, padR = 10, padT = 14, padB = 24;
+  const W = 640, padL = 46, padR = 10, padT = 14, padB = 24;
   const min = Math.min(0, ...trend.map(t=>t.total));
   const max = Math.max(0, ...trend.map(t=>t.total), 1);
   const range = (max - min) || 1;
   const stepX = (W-padL-padR) / Math.max(trend.length-1,1);
   const yFor = v => padT + (H-padT-padB) * (1 - (v - min)/range);
-  const pts = trend.map((t,i)=> ({ x: padL + i*stepX, y: yFor(t.total), ...t }));
+  const pts = trend.map((t,i)=> ({ x: padL + i*stepX, y: yFor(t.total), label: t.label, total: t.total }));
   const path = pts.map((p,i)=> (i===0?"M":"L") + p.x.toFixed(1) + " " + p.y.toFixed(1)).join(" ");
   const gridLines = [0,0.5,1].map(f=>{
     const val = min + range*(1-f);
@@ -478,13 +554,71 @@ function renderTrendSvg(trend, color){
   const showEvery = trend.length>12 ? Math.ceil(trend.length/12) : 1;
   const labels = pts.map((p,i)=> i%showEvery===0 ? `<text x="${p.x}" y="${H-6}" font-size="11" text-anchor="middle">${p.label}</text>` : "").join("");
   const dots = pts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="3" fill="${color}"/>`).join("");
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:180px;">
+  return `<svg id="${id}" class="trend-chart" viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;touch-action:none;" data-points='${JSON.stringify(pts).replace(/'/g,"&#39;")}' data-padl="${padL}" data-padr="${padR}" data-color="${color}">
     ${gridLines}
     ${zeroLine}
     <path d="${path}" fill="none" stroke="${color}" stroke-width="2"/>
     ${dots}
-    ${labels}
+    <g class="chart-crosshair" opacity="0">
+      <line class="ch-vline" x1="0" y1="${padT}" x2="0" y2="${H-padB}" stroke="var(--text-faint)" stroke-width="1" stroke-dasharray="3 3"/>
+      <line class="ch-hline" x1="${padL}" y1="0" x2="${W-padR}" y2="0" stroke="var(--text-faint)" stroke-width="1" stroke-dasharray="3 3"/>
+      <circle class="ch-dot" r="4.5" fill="${color}" stroke="var(--bg)" stroke-width="1.5"/>
+      <g class="ch-tooltip">
+        <rect class="ch-tooltip-bg" y="0" height="30" rx="5" fill="var(--surface)" stroke="var(--border-strong)"/>
+        <text class="ch-tooltip-date" y="12" font-size="10" text-anchor="middle" fill="var(--text-muted)"></text>
+        <text class="ch-tooltip-value" y="24" font-size="12" font-weight="600" text-anchor="middle" fill="var(--text)"></text>
+      </g>
+    </g>
+    <rect class="chart-hitzone" x="${padL}" y="0" width="${W-padL-padR}" height="${H}" fill="transparent"/>
   </svg>`;
+}
+
+function wireChartCrosshair(svg){
+  const pts = JSON.parse(svg.dataset.points);
+  const viewBox = svg.viewBox.baseVal;
+  const group = svg.querySelector(".chart-crosshair");
+  const vline = svg.querySelector(".ch-vline");
+  const hline = svg.querySelector(".ch-hline");
+  const dot = svg.querySelector(".ch-dot");
+  const tooltipG = svg.querySelector(".ch-tooltip");
+  const tooltipBg = svg.querySelector(".ch-tooltip-bg");
+  const tooltipDate = svg.querySelector(".ch-tooltip-date");
+  const tooltipValue = svg.querySelector(".ch-tooltip-value");
+
+  function showAt(clientX){
+    const rect = svg.getBoundingClientRect();
+    const svgX = ((clientX - rect.left) / rect.width) * viewBox.width;
+    let nearest = pts[0], nearestDist = Infinity;
+    for (const p of pts){
+      const d = Math.abs(p.x - svgX);
+      if (d < nearestDist){ nearest = p; nearestDist = d; }
+    }
+    vline.setAttribute("x1", nearest.x); vline.setAttribute("x2", nearest.x);
+    hline.setAttribute("y1", nearest.y); hline.setAttribute("y2", nearest.y);
+    dot.setAttribute("cx", nearest.x); dot.setAttribute("cy", nearest.y);
+    const valueText = inr(nearest.total);
+    tooltipDate.textContent = nearest.label;
+    tooltipValue.textContent = valueText;
+    const tw = Math.max(50, Math.max(nearest.label.length, valueText.length) * 6.5 + 14);
+    tooltipBg.setAttribute("width", tw);
+    tooltipBg.setAttribute("x", -tw/2);
+    tooltipDate.setAttribute("x", 0);
+    tooltipValue.setAttribute("x", 0);
+    let tx = nearest.x, ty = nearest.y - 38;
+    if (tx - tw/2 < 2) tx = tw/2 + 2;
+    if (tx + tw/2 > viewBox.width - 2) tx = viewBox.width - 2 - tw/2;
+    if (ty < 2) ty = nearest.y + 10;
+    tooltipG.setAttribute("transform", `translate(${tx},${ty})`);
+    group.setAttribute("opacity", "1");
+  }
+  function hide(){ group.setAttribute("opacity", "0"); }
+
+  let dragging = false;
+  svg.addEventListener("pointerdown", (e)=>{ dragging = true; showAt(e.clientX); });
+  svg.addEventListener("pointermove", (e)=>{ if (dragging) showAt(e.clientX); });
+  window.addEventListener("pointerup", ()=>{ dragging = false; });
+  svg.addEventListener("pointerleave", ()=>{ if(!dragging) hide(); });
+  svg.addEventListener("pointercancel", hide);
 }
 
 function renderDriveStatus(){
@@ -752,6 +886,13 @@ function attachHandlers(){
         }
         case "toggle-drawer": state.drawerOpen = !state.drawerOpen; render(); break;
         case "close-drawer": state.drawerOpen = false; render(); break;
+        case "toggle-all-days": {
+          const allOpen = lastDayKeys.length>0 && lastDayKeys.every(d=>state.openDays.has(d));
+          if (allOpen) state.openDays.clear();
+          else lastDayKeys.forEach(d=>state.openDays.add(d));
+          render();
+          break;
+        }
       }
     };
   });
@@ -762,6 +903,8 @@ function attachHandlers(){
       if (el.open) state.openDays.add(d); else state.openDays.delete(d);
     };
   });
+
+  app.querySelectorAll("svg.trend-chart").forEach(svg => wireChartCrosshair(svg));
 
   const fileInput = document.getElementById("import-file-input");
   if (fileInput) {
