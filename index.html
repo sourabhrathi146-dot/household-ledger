@@ -60,6 +60,13 @@
   .cat-badge{border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .cat-breakdown-row{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
   .donut-seg{animation:donut-grow .7s cubic-bezier(.22,1,.36,1) backwards;}
+  .toggle-switch{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
+  .toggle-switch input{position:absolute;opacity:0;width:0;height:0;}
+  .toggle-track{width:30px;height:17px;border-radius:999px;background:var(--border-strong);position:relative;transition:background .18s ease;flex-shrink:0;}
+  .toggle-switch input:checked ~ .toggle-track{background:var(--gold);}
+  .toggle-thumb{position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:var(--text);transition:transform .18s ease;}
+  .toggle-switch input:checked ~ .toggle-track .toggle-thumb{transform:translateX(13px);background:var(--bg);}
+  .toggle-label{font-size:11px;color:var(--text-muted);}
   .tag-chip{font-size:12px;padding:4px 10px;border-radius:999px;cursor:pointer;border:1px solid var(--border-strong);background:transparent;color:var(--text-muted);}
   .tag-chip.active{border-color:var(--gold);background:rgba(201,162,39,.15);color:var(--gold);}
   .entry-list{border:1px solid var(--border);border-radius:6px;overflow:hidden;}
@@ -220,6 +227,7 @@ let state = {
   editingBudget: false,
   drawerOpen: false,
   entriesListOpen: false,
+  crosshairEnabled: true,
   openDays: new Set(),
 };
 
@@ -327,6 +335,10 @@ function render(){
       </div>
     </header>
 
+    <section style="margin-bottom:20px;">
+      ${!state.formOpen ? `<button class="btn" data-action="open-form">+ Add expense</button>` : renderForm(state, allTags())}
+    </section>
+
     <div class="drawer-overlay ${state.drawerOpen ? "open" : ""}" data-action="close-drawer"></div>
     <div class="drawer-panel ${state.drawerOpen ? "open" : ""}">
       <div class="drawer-header">
@@ -399,7 +411,12 @@ function render(){
             <span style="width:8px;height:8px;border-radius:50%;background:${trendSelection.color};display:inline-block;flex-shrink:0;"></span>
             <span>Spend over time &middot; <span style="color:var(--text);">${esc(trendSelection.label)}</span></span>
           </div>
-          <div style="display:flex;gap:6px;">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <label class="toggle-switch" title="Show crosshair guide lines when you tap the chart">
+              <input type="checkbox" data-action="toggle-crosshair" ${state.crosshairEnabled ? "checked" : ""}>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span class="toggle-label">Crosshair</span>
+            </label>
             <select data-action="trend-range" style="width:auto;padding:5px 8px;font-size:12px;">
               ${[["3","3 months"],["6","6 months"],["12","12 months"],["24","24 months"],["all","All time"]].map(([v,l])=>`<option value="${v}" ${String(state.trendRange)===v?"selected":""}>${l}</option>`).join("")}
             </select>
@@ -416,10 +433,6 @@ function render(){
         </div>
         ${renderTrendSvg(trend, trendSelection.color)}
       </div>
-    </section>
-
-    <section>
-      ${!state.formOpen ? `<button class="btn" data-action="open-form">+ Add expense</button>` : renderForm(state, allTags())}
     </section>
 
     <section>
@@ -870,6 +883,7 @@ function attachHandlers(){
         case "edit-budget": state.editingBudget=true; render(); document.getElementById("budget-draft")?.focus(); break;
         case "cancel-budget": state.editingBudget=false; render(); break;
         case "save-budget": { const v=Number(document.getElementById("budget-draft").value); state.budget = v>0?v:null; state.editingBudget=false; persist(); render(); break; }
+        case "toggle-crosshair": state.crosshairEnabled = el.checked; render(); break;
         case "export-backup": exportBackup(); break;
         case "import-backup": document.getElementById("import-file-input").click(); break;
         case "export-excel": exportExcel(); break;
@@ -905,7 +919,7 @@ function attachHandlers(){
     };
   });
 
-  app.querySelectorAll("svg.trend-chart").forEach(svg => wireChartCrosshair(svg));
+  if (state.crosshairEnabled) app.querySelectorAll("svg.trend-chart").forEach(svg => wireChartCrosshair(svg));
 
   const fileInput = document.getElementById("import-file-input");
   if (fileInput) {
