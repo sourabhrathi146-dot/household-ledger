@@ -1,4 +1,4 @@
-const CACHE_NAME = "household-ledger-v11";
+const CACHE_NAME = "household-ledger-v12";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon.svg"];
 
 self.addEventListener("install", (event) => {

@@ -274,6 +274,95 @@ function allTags(){
   });
 }
 
+function resolveTrendSelection(){
+  const v = state.trendTag;
+  if(v === "all") return { type:"all", value:null, label:"All spending", color:"#C9A227" };
+  if(v.startsWith("cat:")){ const c = catById(v.slice(4)); return { type:"category", value:c.id, label:c.label, color:c.color }; }
+  if(v.startsWith("tag:")){ const t = v.slice(4); return { type:"tag", value:t, label:t, color:"#9B7FC7" }; }
+  return { type:"all", value:null, label:"All spending", color:"#C9A227" };
+}
+
+function computeTrend(){
+  const [cy, cm] = state.cursor.split("-").map(Number);
+  const earliest = state.expenses.length ? state.expenses.reduce((min,e)=> e.date<min?e.date:min, state.expenses[0].date).slice(0,7) : null;
+  let span = state.trendRange;
+  if(span === "all"){
+    if(earliest){ const [ey,em]=earliest.split("-").map(Number); span = (cy-ey)*12 + (cm-em) + 1; } else span = 6;
+  }
+  const trendSelection = resolveTrendSelection();
+  const trend = [];
+  for(let i=span-1;i>=0;i--){
+    const d = new Date(cy, cm-1-i, 1);
+    const key = monthKey(d);
+    const inMonth = state.expenses.filter(e => {
+      if(monthKey(new Date(e.date)) !== key) return false;
+      if(trendSelection.type==="all") return true;
+      if(trendSelection.type==="category") return e.category===trendSelection.value;
+      return e.tag===trendSelection.value;
+    });
+    const sum = inMonth.reduce((s,e)=>s+Number(e.amount),0);
+    trend.push({ label: d.toLocaleDateString("en-IN",{month:"short", year: span>12 ? "2-digit" : undefined}), total: sum });
+  }
+  return { trend, trendSelection };
+}
+
+function trendPanelHtml(){
+  const { trend, trendSelection } = computeTrend();
+  return `
+        <div class="chart-row">
+          <div class="section-title" style="margin:0;display:flex;align-items:center;gap:8px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:${trendSelection.color};display:inline-block;flex-shrink:0;"></span>
+            <span>Spend over time</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <label class="toggle-switch" title="Show crosshair guide lines when you tap the chart">
+              <input type="checkbox" data-action="toggle-crosshair" ${state.crosshairEnabled ? "checked" : ""}>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span class="toggle-label">Crosshair</span>
+            </label>
+            <select data-action="trend-range" style="width:auto;padding:5px 8px;font-size:12px;">
+              ${[["3","3 months"],["6","6 months"],["12","12 months"],["24","24 months"],["all","All time"]].map(([v,l])=>`<option value="${v}" ${String(state.trendRange)===v?"selected":""}>${l}</option>`).join("")}
+            </select>
+            <select data-action="trend-tag" style="width:auto;padding:5px 8px;font-size:12px;max-width:150px;">
+              <option value="all" ${state.trendTag==="all"?"selected":""}>All spending</option>
+              <optgroup label="By category">
+                ${CATEGORIES.map(c=>`<option value="cat:${c.id}" ${state.trendTag==="cat:"+c.id?"selected":""}>${esc(c.label)}</option>`).join("")}
+              </optgroup>
+              ${allTags().length>0 ? `<optgroup label="By tag">
+                ${allTags().map(t=>`<option value="tag:${esc(t)}" ${state.trendTag==="tag:"+t?"selected":""}>${esc(t)}</option>`).join("")}
+              </optgroup>` : ""}
+            </select>
+          </div>
+        </div>
+        ${renderTrendSvg(trend, trendSelection.color)}`;
+}
+
+function wireTrendPanelHandlers(panel){
+  if (!panel) return;
+  const rangeSel = panel.querySelector('[data-action="trend-range"]');
+  if (rangeSel) rangeSel.onchange = () => { state.trendRange = rangeSel.value === "all" ? "all" : Number(rangeSel.value); updateTrendPanel(); };
+  const tagSel = panel.querySelector('[data-action="trend-tag"]');
+  if (tagSel) tagSel.onchange = () => { state.trendTag = tagSel.value; updateTrendPanel(); };
+  const crosshairToggle = panel.querySelector('[data-action="toggle-crosshair"]');
+  if (crosshairToggle) crosshairToggle.onchange = () => { state.crosshairEnabled = crosshairToggle.checked; updateTrendPanel(); };
+  if (state.crosshairEnabled) {
+    const svg = panel.querySelector("svg.trend-chart");
+    if (svg) wireChartCrosshair(svg);
+  }
+}
+
+// Updates ONLY the trend chart panel's own DOM subtree, instead of a full
+// page re-render — otherwise every unrelated section (category breakdown,
+// entry list, etc.) would be torn down and rebuilt too, re-triggering their
+// entrance animations and looking like the whole page "refreshes" whenever
+// you just change the chart's range or category/tag filter.
+function updateTrendPanel(){
+  const panel = document.getElementById("trend-panel");
+  if (!panel) { render(); return; }
+  panel.innerHTML = trendPanelHtml();
+  wireTrendPanelHandlers(panel);
+}
+
 function render(){
   const me = monthExpenses();
   const total = me.reduce((s,e)=>s+Number(e.amount),0);
@@ -297,34 +386,6 @@ function render(){
   listExpenses.forEach(e=>{ (grouped[e.date] = grouped[e.date]||[]).push(e); });
   const groupedEntries = Object.entries(grouped).sort((a,b)=>b[0].localeCompare(a[0]));
   lastDayKeys = groupedEntries.map(([d])=>d);
-
-  const earliest = state.expenses.length ? state.expenses.reduce((min,e)=> e.date<min?e.date:min, state.expenses[0].date).slice(0,7) : null;
-  let span = state.trendRange;
-  if(span === "all"){
-    if(earliest){ const [ey,em]=earliest.split("-").map(Number); span = (cy-ey)*12 + (cm-em) + 1; } else span = 6;
-  }
-  function resolveTrendSelection(){
-    const v = state.trendTag;
-    if(v === "all") return { type:"all", value:null, label:"All spending", color:"#C9A227" };
-    if(v.startsWith("cat:")){ const c = catById(v.slice(4)); return { type:"category", value:c.id, label:c.label, color:c.color }; }
-    if(v.startsWith("tag:")){ const t = v.slice(4); return { type:"tag", value:t, label:t, color:"#9B7FC7" }; }
-    return { type:"all", value:null, label:"All spending", color:"#C9A227" };
-  }
-  const trendSelection = resolveTrendSelection();
-
-  const trend = [];
-  for(let i=span-1;i>=0;i--){
-    const d = new Date(cy, cm-1-i, 1);
-    const key = monthKey(d);
-    const inMonth = state.expenses.filter(e => {
-      if(monthKey(new Date(e.date)) !== key) return false;
-      if(trendSelection.type==="all") return true;
-      if(trendSelection.type==="category") return e.category===trendSelection.value;
-      return e.tag===trendSelection.value;
-    });
-    const sum = inMonth.reduce((s,e)=>s+Number(e.amount),0);
-    trend.push({ label: d.toLocaleDateString("en-IN",{month:"short", year: span>12 ? "2-digit" : undefined}), total: sum });
-  }
 
   const remaining = state.budget!=null ? state.budget-total : null;
   const pctUsed = state.budget ? Math.min((total/state.budget)*100, 999) : 0;
@@ -422,33 +483,8 @@ function render(){
     </section>
 
     <section>
-      <div class="stub">
-        <div class="chart-row">
-          <div class="section-title" style="margin:0;display:flex;align-items:center;gap:8px;">
-            <span style="width:8px;height:8px;border-radius:50%;background:${trendSelection.color};display:inline-block;flex-shrink:0;"></span>
-            <span>Spend over time &middot; <span style="color:var(--text);">${esc(trendSelection.label)}</span></span>
-          </div>
-          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <label class="toggle-switch" title="Show crosshair guide lines when you tap the chart">
-              <input type="checkbox" data-action="toggle-crosshair" ${state.crosshairEnabled ? "checked" : ""}>
-              <span class="toggle-track"><span class="toggle-thumb"></span></span>
-              <span class="toggle-label">Crosshair</span>
-            </label>
-            <select data-action="trend-range" style="width:auto;padding:5px 8px;font-size:12px;">
-              ${[["3","3 months"],["6","6 months"],["12","12 months"],["24","24 months"],["all","All time"]].map(([v,l])=>`<option value="${v}" ${String(state.trendRange)===v?"selected":""}>${l}</option>`).join("")}
-            </select>
-            <select data-action="trend-tag" style="width:auto;padding:5px 8px;font-size:12px;max-width:150px;">
-              <option value="all" ${state.trendTag==="all"?"selected":""}>All spending</option>
-              <optgroup label="By category">
-                ${CATEGORIES.map(c=>`<option value="cat:${c.id}" ${state.trendTag==="cat:"+c.id?"selected":""}>${esc(c.label)}</option>`).join("")}
-              </optgroup>
-              ${allTags().length>0 ? `<optgroup label="By tag">
-                ${allTags().map(t=>`<option value="tag:${esc(t)}" ${state.trendTag==="tag:"+t?"selected":""}>${esc(t)}</option>`).join("")}
-              </optgroup>` : ""}
-            </select>
-          </div>
-        </div>
-        ${renderTrendSvg(trend, trendSelection.color)}
+      <div class="stub" id="trend-panel">
+        ${trendPanelHtml()}
       </div>
     </section>
 
@@ -591,6 +627,7 @@ function renderTrendSvg(trend, color, opts){
     ${zeroLine}
     <path d="${path}" fill="none" stroke="${color}" stroke-width="2"/>
     ${dots}
+    ${labels}
     <g class="chart-crosshair" opacity="0">
       <line class="ch-vline" x1="0" y1="${padT}" x2="0" y2="${H-padB}" stroke="var(--text-faint)" stroke-width="1" stroke-dasharray="3 3"/>
       <line class="ch-hline" x1="${padL}" y1="0" x2="${W-padR}" y2="0" stroke="var(--text-faint)" stroke-width="1" stroke-dasharray="3 3"/>
@@ -883,11 +920,7 @@ function attachHandlers(){
 
   app.querySelectorAll("[data-action]").forEach(el=>{
     const action = el.dataset.action;
-    if(el.tagName==="SELECT"){
-      if(action==="trend-range") el.onchange = () => { state.trendRange = el.value==="all"?"all":Number(el.value); render(); };
-      if(action==="trend-tag") el.onchange = () => { state.trendTag = el.value; render(); };
-      return;
-    }
+    if(el.tagName==="SELECT") return; // trend-range / trend-tag are wired via wireTrendPanelHandlers
     el.onclick = () => {
       switch(action){
         case "prev-month": { const [y,m]=state.cursor.split("-").map(Number); state.cursor=monthKey(new Date(y,m-2,1)); state.listFilterTag=null; render(); break; }
@@ -900,7 +933,6 @@ function attachHandlers(){
         case "edit-budget": state.editingBudget=true; render(); document.getElementById("budget-draft")?.focus(); break;
         case "cancel-budget": state.editingBudget=false; render(); break;
         case "save-budget": { const v=Number(document.getElementById("budget-draft").value); state.budget = v>0?v:null; state.editingBudget=false; persist(); render(); break; }
-        case "toggle-crosshair": state.crosshairEnabled = el.checked; render(); break;
         case "export-backup": exportBackup(); break;
         case "import-backup": document.getElementById("import-file-input").click(); break;
         case "export-excel": exportExcel(); break;
@@ -936,7 +968,7 @@ function attachHandlers(){
     };
   });
 
-  if (state.crosshairEnabled) app.querySelectorAll("svg.trend-chart").forEach(svg => wireChartCrosshair(svg));
+  wireTrendPanelHandlers(document.getElementById("trend-panel"));
 
   const fileInput = document.getElementById("import-file-input");
   if (fileInput) {
