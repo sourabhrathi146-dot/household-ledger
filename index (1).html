@@ -227,7 +227,6 @@ let state = {
   editingBudget: false,
   drawerOpen: false,
   entriesListOpen: false,
-  crosshairEnabled: true,
   chartOpen: false,
   openDays: new Set(),
 };
@@ -406,56 +405,17 @@ function render(){
     </section>
 
     <section>
-      <details class="day-group chart-group" ${state.chartOpen ? "open" : ""}>
-        <summary>
-          <span class="day-summary-left">
-            <span style="width:8px;height:8px;border-radius:50%;background:${trendSelection.color};display:inline-block;flex-shrink:0;"></span>
-            <span>Spend over time &middot; <span style="color:var(--text);">${esc(trendSelection.label)}</span></span>
-          </span>
-          <span class="day-summary-right">
-            <span class="day-chevron">&#9662;</span>
-          </span>
-        </summary>
-        <div class="stub" style="border:none;border-top:1px solid var(--border);border-radius:0;">
-          <div class="chart-row">
-            <label class="toggle-switch" title="Show crosshair guide lines when you tap the chart">
-              <input type="checkbox" data-action="toggle-crosshair" ${state.crosshairEnabled ? "checked" : ""}>
-              <span class="toggle-track"><span class="toggle-thumb"></span></span>
-              <span class="toggle-label">Crosshair</span>
-            </label>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-              <select data-action="trend-range" style="width:auto;padding:5px 8px;font-size:12px;">
-                ${[["3","3 months"],["6","6 months"],["12","12 months"],["24","24 months"],["all","All time"]].map(([v,l])=>`<option value="${v}" ${String(state.trendRange)===v?"selected":""}>${l}</option>`).join("")}
-              </select>
-              <select data-action="trend-tag" style="width:auto;padding:5px 8px;font-size:12px;max-width:150px;">
-                <option value="all" ${state.trendTag==="all"?"selected":""}>All spending</option>
-                <optgroup label="By category">
-                  ${CATEGORIES.map(c=>`<option value="cat:${c.id}" ${state.trendTag==="cat:"+c.id?"selected":""}>${esc(c.label)}</option>`).join("")}
-                </optgroup>
-                ${allTags().length>0 ? `<optgroup label="By tag">
-                  ${allTags().map(t=>`<option value="tag:${esc(t)}" ${state.trendTag==="tag:"+t?"selected":""}>${esc(t)}</option>`).join("")}
-                </optgroup>` : ""}
-              </select>
-            </div>
-          </div>
-          ${renderTrendSvg(trend, trendSelection.color)}
+      <div class="chart-row">
+        <div class="section-title" style="margin:0;display:flex;align-items:center;gap:8px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:${trendSelection.color};display:inline-block;flex-shrink:0;"></span>
+          <span>Spend over time &middot; <span style="color:var(--text);">${esc(trendSelection.label)}</span></span>
         </div>
-      </details>
-    </section>
-
-    <section>
-      <div class="stub" style="display:none;">
+        <button class="btn-ghost" style="padding:4px 10px;font-size:11px;" data-action="toggle-chart">${state.chartOpen ? "Hide chart" : "Show chart"}</button>
+      </div>
+      ${!state.chartOpen ? "" : `
+      <div class="stub">
         <div class="chart-row">
-          <div class="section-title" style="margin:0;display:flex;align-items:center;gap:8px;">
-            <span style="width:8px;height:8px;border-radius:50%;background:${trendSelection.color};display:inline-block;flex-shrink:0;"></span>
-            <span>Spend over time &middot; <span style="color:var(--text);">${esc(trendSelection.label)}</span></span>
-          </div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <label class="toggle-switch" title="Show crosshair guide lines when you tap the chart">
-              <input type="checkbox" data-action="toggle-crosshair" ${state.crosshairEnabled ? "checked" : ""}>
-              <span class="toggle-track"><span class="toggle-thumb"></span></span>
-              <span class="toggle-label">Crosshair</span>
-            </label>
             <select data-action="trend-range" style="width:auto;padding:5px 8px;font-size:12px;">
               ${[["3","3 months"],["6","6 months"],["12","12 months"],["24","24 months"],["all","All time"]].map(([v,l])=>`<option value="${v}" ${String(state.trendRange)===v?"selected":""}>${l}</option>`).join("")}
             </select>
@@ -471,60 +431,7 @@ function render(){
           </div>
         </div>
         ${renderTrendSvg(trend, trendSelection.color)}
-      </div>
-    </section>
-
-    <section>
-      <div class="stub" style="display:none;">
-      </div>
-    </section>
-
-    <section>
-      <div class="stub" style="display:none;">
-      </div>
-    </section>
-
-    <section style="display:none;">
-    </section>
-
-    <section>
-      <div style="display:none;"></div>
-    </section>
-
-    <section style="display:none;"></section>
-
-    <section>
-      <div style="display:none;"></div>
-    </section>
-
-    <section>
-    </section>
-
-    <section>
-    </section>
-
-    <section>
-    </section>
-
-    <section>
-    </section>
-
-    <section>
-    </section>
-
-    <section>
-    </section>
-
-    <section>
-    </section>
-
-    <section>
-    </section>
-
-    <section>
-    </section>
-
-    <section>
+      </div>`}
     </section>
 
     <section>
@@ -994,7 +901,7 @@ function attachHandlers(){
         case "edit-budget": state.editingBudget=true; render(); document.getElementById("budget-draft")?.focus(); break;
         case "cancel-budget": state.editingBudget=false; render(); break;
         case "save-budget": { const v=Number(document.getElementById("budget-draft").value); state.budget = v>0?v:null; state.editingBudget=false; persist(); render(); break; }
-        case "toggle-crosshair": state.crosshairEnabled = el.checked; render(); break;
+        case "toggle-chart": state.chartOpen = !state.chartOpen; render(); break;
         case "export-backup": exportBackup(); break;
         case "import-backup": document.getElementById("import-file-input").click(); break;
         case "export-excel": exportExcel(); break;
@@ -1025,13 +932,12 @@ function attachHandlers(){
 
   app.querySelectorAll("details.day-group").forEach(el=>{
     el.ontoggle = () => {
-      if (el.classList.contains("chart-group")) { state.chartOpen = el.open; return; }
       const d = el.dataset.date;
       if (el.open) state.openDays.add(d); else state.openDays.delete(d);
     };
   });
 
-  if (state.crosshairEnabled) app.querySelectorAll("svg.trend-chart").forEach(svg => wireChartCrosshair(svg));
+  app.querySelectorAll("svg.trend-chart").forEach(svg => wireChartCrosshair(svg));
 
   const fileInput = document.getElementById("import-file-input");
   if (fileInput) {
