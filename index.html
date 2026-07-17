@@ -130,6 +130,8 @@ const CAT_ICON_PATHS = {
   medical: '<path d="M6.4 1.9h3.2v4.3H14v3.2H9.6v4.3H6.4V9.4H2V6.2h4.4V1.9z"/>',
   entertainment: '<path d="M2 5.1a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1.3a1.3 1.3 0 0 0 0 2.5V10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8.9a1.3 1.3 0 0 0 0-2.5V5.1z"/>',
   other: '<circle cx="8" cy="8" r="2.6"/><circle cx="8" cy="8" r="4.6" fill="none" stroke="currentColor" stroke-width="1"/>',
+  dairy: '<path d="M4.6 6 8 2.2 11.4 6v7.3a1 1 0 0 1-1 1H5.6a1 1 0 0 1-1-1V6z"/><rect x="4.6" y="6.4" width="6.8" height="1" fill="var(--bg)"/>',
+  fruitveg: '<path d="M8.7 5.6 12.8 9.7a1.6 1.6 0 0 1 0 2.3l-.3.3a1.6 1.6 0 0 1-2.3 0L6.1 8.2 8.7 5.6z"/><path d="M9.1 4.8c.5-1.5 2-2.3 2-2.3s.3 1.6-.9 2.7" stroke="currentColor" stroke-width="1" fill="none" stroke-linecap="round"/><path d="M9.7 3.6c-.8-1-2.5-1-2.5-1s.1 1.6 1.6 2.2" stroke="currentColor" stroke-width="1" fill="none" stroke-linecap="round"/>',
 };
 
 function hexToRgba(hex, alpha){
@@ -173,6 +175,8 @@ function renderCategoryDonut(byCategory, total){
 const CATEGORIES = [
   { id:"electricity", label:"Electricity", color:"#C9A227" },
   { id:"grocery", label:"Grocery", color:"#4F9C87" },
+  { id:"dairy", label:"Dairy", color:"#D9C9A0" },
+  { id:"fruitveg", label:"Fruits & vegetables", color:"#6FAE4A" },
   { id:"water", label:"Water", color:"#4A85B0" },
   { id:"rent", label:"Rent", color:"#C0604E" },
   { id:"internet", label:"Internet", color:"#9B7FC7" },
@@ -182,7 +186,7 @@ const CATEGORIES = [
   { id:"entertainment", label:"Entertainment", color:"#B0699C" },
   { id:"other", label:"Other", color:"#7C8A93" },
 ];
-const PINNED_TAGS = ["Dairy", "Fruits & vegetables"];
+const PINNED_TAGS = [];
 
 const catById = id => CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length-1];
 const inr = n => new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(n||0);
@@ -230,6 +234,19 @@ let state = {
   crosshairEnabled: true,
   openDays: new Set(),
 };
+
+// One-time migration: entries that were logged as Grocery + tag "Dairy" or
+// "Fruits & vegetables" (back when those were tags, not categories) move
+// into the new dedicated categories automatically.
+(function migrateGroceryTags(){
+  let changed = false;
+  state.expenses = state.expenses.map(e => {
+    if (e.category === "grocery" && e.tag === "Dairy") { changed = true; return { ...e, category: "dairy", tag: "" }; }
+    if (e.category === "grocery" && e.tag === "Fruits & vegetables") { changed = true; return { ...e, category: "fruitveg", tag: "" }; }
+    return e;
+  });
+  if (changed) persist();
+})();
 
 let driveSyncTimer = null;
 let lastDayKeys = [];
@@ -569,7 +586,7 @@ function renderTrendSvg(trend, color, opts){
   const showEvery = trend.length>12 ? Math.ceil(trend.length/12) : 1;
   const labels = pts.map((p,i)=> i%showEvery===0 ? `<text x="${p.x}" y="${H-6}" font-size="11" text-anchor="middle">${p.label}</text>` : "").join("");
   const dots = pts.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="3" fill="${color}"/>`).join("");
-  return `<svg id="${id}" class="trend-chart" viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;touch-action:none;" data-points='${JSON.stringify(pts).replace(/'/g,"&#39;")}' data-padl="${padL}" data-padr="${padR}" data-color="${color}">
+  return `<svg id="${id}" class="trend-chart" viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;touch-action:pan-y;" data-points='${JSON.stringify(pts).replace(/'/g,"&#39;")}' data-padl="${padL}" data-padr="${padR}" data-color="${color}">
     ${gridLines}
     ${zeroLine}
     <path d="${path}" fill="none" stroke="${color}" stroke-width="2"/>
