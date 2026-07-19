@@ -58,16 +58,13 @@
   .chart-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;}
   .cat-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
   .cat-badge{border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .cat-stack{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-bottom:14px;background:var(--surface-2);}
-  .cat-stack-seg{height:100%;min-width:2px;}
-  .cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  @media (max-width:400px){ .cat-grid{grid-template-columns:1fr;} }
-  .cat-chip{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:10px 12px;opacity:0;animation:fade-up .35s ease forwards;animation-delay:calc(var(--stagger,0) * 55ms);}
-  .cat-chip-badge{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .cat-chip-info{min-width:0;flex:1;}
-  .cat-chip-name{font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
-  .cat-chip-pct{font-size:17px;font-weight:700;line-height:1.2;}
-  .cat-chip-amt{font-size:11px;color:var(--text-faint);margin-top:2px;}
+  .cat-compact-list{display:flex;flex-direction:column;}
+  .cat-compact-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);opacity:0;animation:fade-up .3s ease forwards;animation-delay:calc(var(--stagger,0) * 35ms);}
+  .cat-compact-row:last-child{border-bottom:none;}
+  .cat-compact-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .cat-compact-name{flex:1;min-width:0;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cat-compact-pct{font-size:13px;font-weight:700;min-width:34px;text-align:right;flex-shrink:0;}
+  .cat-compact-amt{font-size:11px;color:var(--text-faint);min-width:62px;text-align:right;flex-shrink:0;}
   .cat-badge{border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .toggle-switch{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
   .toggle-switch input{position:absolute;opacity:0;width:0;height:0;}
@@ -119,8 +116,8 @@
   @keyframes fade-up{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
   .day-group .entry-list{animation:fade-up .25s ease;}
   @media (prefers-reduced-motion: reduce){
-    .cat-chip,.entry,.day-group .entry-list{animation:none !important;opacity:1 !important;}
-    .bar-fill,.cat-stack-seg,.drawer-panel,.drawer-overlay,.day-chevron{transition:none !important;}
+    .cat-compact-row,.entry,.day-group .entry-list{animation:none !important;opacity:1 !important;}
+    .bar-fill,.drawer-panel,.drawer-overlay,.day-chevron{transition:none !important;}
   }
 </style>
 </head>
@@ -477,26 +474,18 @@ function render(){
           ${byCategory.length>0 ? `<span class="mono" style="font-size:11px;color:var(--text-faint);">${esc(inrCompact(total))} &middot; ${byCategory.length} ${byCategory.length===1?"category":"categories"}</span>` : ""}
         </div>
         ${byCategory.length===0 ? `<div style="font-size:13px;color:var(--text-faint);padding:12px 0;">Add an entry to see the breakdown.</div>` :
-          (() => {
-            const asc = byCategory.slice().reverse();
-            const stackSegs = asc.map(c => {
-              const pct = total>0 ? Math.max((c.total/total)*100, 0.6) : 0;
-              return `<span class="cat-stack-seg" style="width:${pct}%;background:${c.color};box-shadow:0 0 6px ${hexToRgba(c.color,0.6)} inset;"></span>`;
-            }).join("");
-            const chips = asc.map((c,i) => {
+          `<div class="cat-compact-list">
+            ${byCategory.map((c,i) => {
               const pct = total>0 ? Math.round((c.total/total)*100) : 0;
               return `
-              <div class="cat-chip" style="--stagger:${i};border-color:${hexToRgba(c.color,0.3)};">
-                <span class="cat-chip-badge" style="background:${hexToRgba(c.color,0.16)};box-shadow:0 0 14px ${hexToRgba(c.color,0.55)},inset 0 0 0 1px ${hexToRgba(c.color,0.45)};">${catIconSvg(c,17)}</span>
-                <div class="cat-chip-info">
-                  <div class="cat-chip-name">${esc(c.label)}</div>
-                  <div class="cat-chip-pct" style="color:${c.color};text-shadow:0 0 12px ${hexToRgba(c.color,0.45)};">${pct}%</div>
-                  <div class="cat-chip-amt mono">${inr(c.total)}</div>
-                </div>
+              <div class="cat-compact-row" style="--stagger:${i}">
+                <span class="cat-compact-icon" style="background:${hexToRgba(c.color,0.16)};">${catIconSvg(c,13)}</span>
+                <span class="cat-compact-name">${esc(c.label)}</span>
+                <span class="cat-compact-pct" style="color:${c.color};">${pct}%</span>
+                <span class="cat-compact-amt mono">${inr(c.total)}</span>
               </div>`;
-            }).join("");
-            return `<div class="cat-stack">${stackSegs}</div><div class="cat-grid">${chips}</div>`;
-          })()}
+            }).join("")}
+          </div>`}
       </div>
     </section>
 
