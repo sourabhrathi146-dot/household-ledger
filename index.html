@@ -18,6 +18,11 @@
     --text:#EDE6D6; --text-muted:#8E9490; --text-faint:#6B716C;
     --gold:#C9A227; --gold-bright:#DBB53A; --red:#D9776A; --green:#6FB08A;
   }
+  [data-theme="light"]{
+    --bg:#F7F4EA; --surface:#FFFFFF; --surface-2:#F1ECDD; --border:#E4DCC5; --border-strong:#D2C7A6;
+    --text:#2B2620; --text-muted:#6E6656; --text-faint:#9A907A;
+    --gold:#A87A16; --gold-bright:#C4922A; --red:#B14A3A; --green:#3F8763;
+  }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;}
   .mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;}
@@ -51,20 +56,18 @@
   section{margin-bottom:24px;}
   .section-title{font-size:13px;color:var(--text-muted);margin-bottom:10px;}
   .chart-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;}
-  .cat-bar-item{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;opacity:0;animation:fade-up .4s ease forwards;animation-delay:calc(var(--stagger,0) * 45ms);}
   .cat-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
-  .cat-bar-track{flex:1;min-width:0;height:14px;background:var(--surface-2);border-radius:3px;overflow:hidden;}
-  .cat-bar-fill{height:100%;border-radius:3px;transition:width .5s cubic-bezier(.22,1,.36,1);}
-  .cat-bar-label{width:92px;flex-shrink:0;display:flex;align-items:center;gap:6px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .cat-bar-value{width:64px;text-align:right;flex-shrink:0;}
-  @media (max-width:360px){
-    .cat-breakdown-row{gap:10px;}
-    .cat-bar-label{width:68px;}
-    .cat-bar-value{width:54px;font-size:11px;}
-  }
   .cat-badge{border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .cat-breakdown-row{display:flex;gap:14px;align-items:center;flex-wrap:nowrap;}
-  .donut-seg{animation:donut-grow .7s cubic-bezier(.22,1,.36,1) backwards;}
+  .cat-list{display:flex;flex-direction:column;gap:14px;}
+  .cat-row{opacity:0;animation:fade-up .35s ease forwards;animation-delay:calc(var(--stagger,0) * 55ms);}
+  .cat-row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:10px;}
+  .cat-row-name{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cat-row-stats{display:flex;align-items:baseline;gap:8px;flex-shrink:0;}
+  .cat-row-pct{font-size:11px;color:var(--text-faint);min-width:30px;text-align:right;}
+  .cat-row-amt{font-size:13px;font-weight:600;}
+  .cat-row-track{height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;}
+  .cat-row-fill{display:block;height:100%;border-radius:4px;transition:width .6s cubic-bezier(.22,1,.36,1);}
+  .cat-badge{border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .toggle-switch{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
   .toggle-switch input{position:absolute;opacity:0;width:0;height:0;}
   .toggle-track{width:30px;height:17px;border-radius:999px;background:var(--border-strong);position:relative;transition:background .18s ease;flex-shrink:0;}
@@ -83,6 +86,7 @@
   .empty{text-align:center;padding:32px 16px;color:var(--text-faint);font-size:13px;}
   .drive-status{display:flex;align-items:center;gap:6px;}
   .drive-dot{width:7px;height:7px;border-radius:50%;background:var(--text-faint);flex-shrink:0;}
+  .drive-reconnect-link{background:none;border:none;color:var(--gold);text-decoration:underline;font-size:inherit;padding:0;cursor:pointer;font-family:inherit;}
   .drive-dot.on{background:var(--green);}
   .drive-dot.busy{background:var(--gold);}
   .drive-dot.err{background:var(--red);}
@@ -112,11 +116,10 @@
   .offline-note{font-size:11px;color:var(--text-faint);text-align:center;margin-top:24px;}
   svg text{font-family:-apple-system,sans-serif;fill:var(--text-muted);}
   @keyframes fade-up{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
-  @keyframes donut-grow{from{stroke-width:0;}to{stroke-width:13;}}
   .day-group .entry-list{animation:fade-up .25s ease;}
   @media (prefers-reduced-motion: reduce){
-    .cat-bar-item,.entry,.donut-seg,.day-group .entry-list{animation:none !important;opacity:1 !important;}
-    .bar-fill,.cat-bar-fill,.drawer-panel,.drawer-overlay,.day-chevron{transition:none !important;}
+    .cat-row,.entry,.day-group .entry-list{animation:none !important;opacity:1 !important;}
+    .bar-fill,.cat-row-fill,.drawer-panel,.drawer-overlay,.day-chevron{transition:none !important;}
   }
 </style>
 </head>
@@ -156,26 +159,6 @@ function catBadge(cat, size){
 }
 
 const inrCompact = n => new Intl.NumberFormat("en-IN",{notation:"compact",maximumFractionDigits:1}).format(n||0);
-
-function renderCategoryDonut(byCategory, total){
-  const positive = byCategory.filter(c=>c.total>0);
-  if (!positive.length || total<=0) return "";
-  const r = 42, cx = 54, cy = 54, sw = 13, circumference = 2*Math.PI*r;
-  let offset = 0;
-  const segs = positive.map(c=>{
-    const len = Math.max((c.total/total)*circumference, positive.length>1 ? 2 : circumference);
-    const gap = positive.length>1 ? 1.5 : 0;
-    const dash = Math.max(len-gap, 1);
-    const circle = `<circle class="donut-seg" cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${c.color}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${dash} ${circumference-dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"></circle>`;
-    offset += len;
-    return circle;
-  }).join("");
-  return `<svg viewBox="0 0 108 108" width="88" height="88" style="flex-shrink:0;">
-    ${segs}
-    <text x="${cx}" y="${cy-2}" text-anchor="middle" font-size="14" font-weight="600" fill="var(--text)" font-family="ui-monospace,SFMono-Regular,monospace">${esc(inrCompact(total))}</text>
-    <text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="8" fill="var(--text-faint)">${positive.length} categor${positive.length===1?"y":"ies"}</text>
-  </svg>`;
-}
 
 const CATEGORIES = [
   { id:"electricity", label:"Electricity", color:"#C9A227" },
@@ -238,7 +221,15 @@ let state = {
   entriesListOpen: false,
   crosshairEnabled: true,
   openDays: new Set(),
+  theme: safeGet("hl-theme", "dark"),
 };
+
+function applyTheme(){
+  document.documentElement.setAttribute("data-theme", state.theme);
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.setAttribute("content", state.theme === "light" ? "#F7F4EA" : "#12181B");
+}
+applyTheme(); // set immediately, before first render, so there's no flash of the wrong theme
 
 // One-time migration: entries that were logged as Grocery + tag "Dairy" or
 // "Fruits & vegetables" (back when those were tags, not categories) move
@@ -429,6 +420,14 @@ function render(){
         <button class="drawer-close" data-action="close-drawer">&times;</button>
       </div>
       <div class="drawer-section">
+        <div class="drawer-section-title">Appearance</div>
+        <label class="toggle-switch" style="padding:2px 0;">
+          <input type="checkbox" data-action="toggle-theme" ${state.theme === "light" ? "checked" : ""}>
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span class="toggle-label">White mode</span>
+        </label>
+      </div>
+      <div class="drawer-section">
         <div class="drawer-section-title">Google Drive</div>
         <div class="drive-status" style="margin-bottom:10px;">${renderDriveStatus()}</div>
         ${renderDriveButtons("drawer-btn")}
@@ -471,18 +470,24 @@ function render(){
 
     <section>
       <div class="stub">
-        <div class="section-title">Spend by category</div>
+        <div class="section-title" style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+          <span>Spend by category</span>
+          ${byCategory.length>0 ? `<span class="mono" style="font-size:11px;color:var(--text-faint);">${esc(inrCompact(total))} &middot; ${byCategory.length} ${byCategory.length===1?"category":"categories"}</span>` : ""}
+        </div>
         ${byCategory.length===0 ? `<div style="font-size:13px;color:var(--text-faint);padding:12px 0;">Add an entry to see the breakdown.</div>` :
-          `<div class="cat-breakdown-row">
-            ${renderCategoryDonut(byCategory, total)}
-            <div style="flex:1;min-width:0;">
-              ${byCategory.map((c,i)=>`
-                <div class="cat-bar-item" style="--stagger:${i}">
-                  <span class="cat-bar-label">${catIconSvg(c,13)}${esc(c.label)}</span>
-                  <span class="cat-bar-track"><span class="cat-bar-fill" style="width:${(() => { const maxAbs = Math.max(...byCategory.map(c=>Math.abs(c.total)), 1); return Math.max((Math.abs(c.total)/maxAbs)*100, 4); })()}%;background:${c.color}${c.total<0?";opacity:.5":""}"></span></span>
-                  <span class="cat-bar-value mono">${inr(c.total)}</span>
-                </div>`).join("")}
-            </div>
+          `<div class="cat-list">
+            ${byCategory.slice().reverse().map((c,i)=>{
+              const pct = total>0 ? Math.round((c.total/total)*100) : 0;
+              const fillPct = Math.max(pct, c.total !== 0 ? 2 : 0);
+              return `
+              <div class="cat-row" style="--stagger:${i}">
+                <div class="cat-row-top">
+                  <span class="cat-row-name">${catBadge(c,22)}${esc(c.label)}</span>
+                  <span class="cat-row-stats"><span class="cat-row-pct">${pct}%</span><span class="mono cat-row-amt">${inr(c.total)}</span></span>
+                </div>
+                <div class="cat-row-track"><span class="cat-row-fill" style="width:${fillPct}%;background:${c.color}${c.total<0?";opacity:.5":""}"></span></div>
+              </div>`;
+            }).join("")}
           </div>`}
       </div>
     </section>
@@ -706,6 +711,9 @@ function renderDriveStatus(){
   }
   if (driveStatus === "connecting" || driveStatus === "syncing") {
     return `<div class="drive-status"><span class="drive-dot busy"></span>${driveStatus === "connecting" ? "Connecting to Drive&hellip;" : "Syncing to Drive&hellip;"}</div>`;
+  }
+  if (driveStatus === "reconnect") {
+    return `<div class="drive-status"><span class="drive-dot"></span>Drive session expired &middot; <button class="drive-reconnect-link" data-action="reconnect-drive">tap to reconnect</button></div>`;
   }
   if (driveAccessToken && fileId) {
     const when = lastSync ? new Date(lastSync).toLocaleString("en-IN", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" }) : "not yet";
@@ -942,6 +950,14 @@ function attachHandlers(){
         case "import-backup": document.getElementById("import-file-input").click(); break;
         case "export-excel": exportExcel(); break;
         case "connect-drive": connectDrive(); break;
+        case "reconnect-drive": connectDrive(); break;
+        case "toggle-theme": {
+          state.theme = state.theme === "light" ? "dark" : "light";
+          safeSet("hl-theme", state.theme);
+          applyTheme();
+          render();
+          break;
+        }
         case "sync-drive": driveUpload(); break;
         case "restore-drive": driveAccessToken ? driveRestore() : goToDriveAuth(undefined, "restore"); break;
         case "disconnect-drive": {
@@ -1028,13 +1044,15 @@ try {
   document.getElementById("app").innerHTML =
     '<div style="padding:2rem;text-align:center;color:#D9776A;">' +
     'Something went wrong loading the ledger: ' + (err && err.message ? err.message : "unknown error") +
-    '<br><br><span style="color:#8E9490;font-size:13px;">Try opening this file directly in your browser (not inside another app\'s preview), or reload the page.</span></div>';
+    '<br><br><span style="color:var(--text-faint);font-size:13px;">Try opening this file directly in your browser (not inside another app\'s preview), or reload the page.</span></div>';
 }
 
 // If we just landed back here from Google's sign-in page, finish that flow first.
-// Otherwise: reuse a still-valid saved token, or (if this device was connected
-// before and we're online) try one silent background reconnect with no popup
-// and no visible prompt.
+// Otherwise: reuse a still-valid saved token. If it's expired, DON'T redirect
+// away automatically — that used to hijack every cold launch with a round
+// trip to Google before the app was even usable. Just flag that a reconnect
+// is available; it happens on demand (tap in the drawer) or silently via
+// reauthThen() the next time an actual sync is attempted.
 (function restoreDriveSession(){
   if (consumeDriveAuthRedirect()) return;
   const savedToken = safeGet("hl-drive-token", null);
@@ -1046,8 +1064,9 @@ try {
     render();
     return;
   }
-  if (fileId && navigator.onLine) {
-    goToDriveAuth("none", "silent");
+  if (fileId) {
+    driveStatus = "reconnect";
+    render();
   }
 })();
 
