@@ -390,14 +390,14 @@ function entryRowHtml(e, idx, opts){
     ? `${esc(cat.label)} ${e.tag?`<span class="entry-tag">${esc(e.tag)}</span>`:""}`
     : `<span class="mono" style="flex-shrink:0;">${esc(shortDate(e.date))}</span>${e.note?`<span class="entry-note-inline">${esc(e.note)}</span>`:""}${e.tag?`<span class="entry-tag">${esc(e.tag)}</span>`:""}`;
   return `<div class="entry" style="--stagger:${idx}">
-                  ${catBadge(cat, 32)}
+                  ${showCategory ? catBadge(cat, 32) : ""}
                   <div style="flex:1;min-width:0;">
                     <div class="entry-name">${primaryLine}</div>
                     ${showCategory && e.note?`<div class="entry-note">${esc(e.note)}</div>`:""}
                   </div>
                   <div class="mono" style="font-size:14px;font-weight:600;">${inr(e.amount)}</div>
                   <button class="btn-icon" data-action="edit-entry" data-id="${e.id}">edit</button>
-                  <button class="btn-icon" data-action="delete-entry" data-id="${e.id}">del</button>
+                  ${showCategory ? `<button class="btn-icon" data-action="delete-entry" data-id="${e.id}">del</button>` : ""}
                 </div>`;
 }
 
