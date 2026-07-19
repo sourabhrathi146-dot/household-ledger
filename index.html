@@ -229,6 +229,7 @@ let state = {
   crosshairEnabled: true,
   openDays: new Set(),
   theme: safeGet("hl-theme", "dark"),
+  trendVisible: safeGet("hl-trend-visible", true),
 };
 
 function applyTheme(){
@@ -435,6 +436,11 @@ function render(){
           <span class="toggle-track"><span class="toggle-thumb"></span></span>
           <span class="toggle-label">White mode</span>
         </label>
+        <label class="toggle-switch" style="padding:2px 0;margin-top:8px;">
+          <input type="checkbox" data-action="toggle-trend-visible" ${state.trendVisible ? "checked" : ""}>
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span class="toggle-label">Show "Spend over time" chart</span>
+        </label>
       </div>
       <div class="drawer-section">
         <div class="drawer-section-title">Google Drive</div>
@@ -499,11 +505,11 @@ function render(){
       </div>
     </section>
 
-    <section>
+    ${state.trendVisible ? `<section>
       <div class="stub" id="trend-panel">
         ${trendPanelHtml()}
       </div>
-    </section>
+    </section>` : ""}
 
     <section>
       <div class="chart-row">
@@ -759,11 +765,17 @@ function driveAuthUrl(promptMode, action){
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: driveRedirectUri(),
     response_type: "token",
-    scope: "https://www.googleapis.com/auth/drive.file",
+    // "email" lets us remember which Google account was used, so reconnects
+    // can skip Google's account chooser via login_hint below.
+    scope: "https://www.googleapis.com/auth/drive.file email",
     include_granted_scopes: "true",
     state: action || "connect",
   });
   if (promptMode) params.set("prompt", promptMode);
+  // If we already know which account this device uses, hint it so Google
+  // signs straight back in instead of showing the "choose an account" screen.
+  const savedEmail = safeGet("hl-drive-email", null);
+  if (savedEmail) params.set("login_hint", savedEmail);
   return "https://accounts.google.com/o/oauth2/v2/auth?" + params.toString();
 }
 
@@ -786,6 +798,7 @@ function consumeDriveAuthRedirect(){
     const expiresInMs = (Number(params.get("expires_in")) || 3500) * 1000;
     safeSet("hl-drive-token", token);
     safeSet("hl-drive-token-expiry", Date.now() + expiresInMs - 60000);
+    rememberDriveEmail(token);
     if (action === "restore") driveRestore();
     else if (action === "connect") driveUpload();
     else { driveStatus = "synced"; render(); } // action === "silent"
@@ -798,6 +811,16 @@ function consumeDriveAuthRedirect(){
     driveStatus = "idle"; render();
   }
   return true;
+}
+
+// Fires and forgets: looks up which Google account this token belongs to,
+// and saves the email so the NEXT reconnect can use login_hint to skip the
+// "choose an account" screen entirely. Doesn't block anything if it fails.
+function rememberDriveEmail(token){
+  fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers: { Authorization: `Bearer ${token}` } })
+    .then(res => res.ok ? res.json() : null)
+    .then(info => { if (info && info.email) safeSet("hl-drive-email", info.email); })
+    .catch(() => {});
 }
 
 async function driveFindFileId(){
@@ -962,6 +985,12 @@ function attachHandlers(){
           state.theme = state.theme === "light" ? "dark" : "light";
           safeSet("hl-theme", state.theme);
           applyTheme();
+          render();
+          break;
+        }
+        case "toggle-trend-visible": {
+          state.trendVisible = !state.trendVisible;
+          safeSet("hl-trend-visible", state.trendVisible);
           render();
           break;
         }
