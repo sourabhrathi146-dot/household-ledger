@@ -58,15 +58,16 @@
   .chart-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;}
   .cat-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
   .cat-badge{border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .cat-list{display:flex;flex-direction:column;gap:14px;}
-  .cat-row{opacity:0;animation:fade-up .35s ease forwards;animation-delay:calc(var(--stagger,0) * 55ms);}
-  .cat-row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:10px;}
-  .cat-row-name{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .cat-row-stats{display:flex;align-items:baseline;gap:8px;flex-shrink:0;}
-  .cat-row-pct{font-size:11px;color:var(--text-faint);min-width:30px;text-align:right;}
-  .cat-row-amt{font-size:13px;font-weight:600;}
-  .cat-row-track{height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;}
-  .cat-row-fill{display:block;height:100%;border-radius:4px;transition:width .6s cubic-bezier(.22,1,.36,1);}
+  .cat-stack{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-bottom:14px;background:var(--surface-2);}
+  .cat-stack-seg{height:100%;min-width:2px;}
+  .cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media (max-width:400px){ .cat-grid{grid-template-columns:1fr;} }
+  .cat-chip{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:10px 12px;opacity:0;animation:fade-up .35s ease forwards;animation-delay:calc(var(--stagger,0) * 55ms);}
+  .cat-chip-badge{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .cat-chip-info{min-width:0;flex:1;}
+  .cat-chip-name{font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+  .cat-chip-pct{font-size:17px;font-weight:700;line-height:1.2;}
+  .cat-chip-amt{font-size:11px;color:var(--text-faint);margin-top:2px;}
   .cat-badge{border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .toggle-switch{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
   .toggle-switch input{position:absolute;opacity:0;width:0;height:0;}
@@ -118,8 +119,8 @@
   @keyframes fade-up{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
   .day-group .entry-list{animation:fade-up .25s ease;}
   @media (prefers-reduced-motion: reduce){
-    .cat-row,.entry,.day-group .entry-list{animation:none !important;opacity:1 !important;}
-    .bar-fill,.cat-row-fill,.drawer-panel,.drawer-overlay,.day-chevron{transition:none !important;}
+    .cat-chip,.entry,.day-group .entry-list{animation:none !important;opacity:1 !important;}
+    .bar-fill,.cat-stack-seg,.drawer-panel,.drawer-overlay,.day-chevron{transition:none !important;}
   }
 </style>
 </head>
@@ -161,20 +162,21 @@ function catBadge(cat, size){
 const inrCompact = n => new Intl.NumberFormat("en-IN",{notation:"compact",maximumFractionDigits:1}).format(n||0);
 
 const CATEGORIES = [
-  { id:"electricity", label:"Electricity", color:"#C9A227" },
-  { id:"grocery", label:"Grocery", color:"#4F9C87" },
-  { id:"dairy", label:"Dairy", color:"#D9C9A0" },
-  { id:"fruitveg", label:"Fruits & vegetables", color:"#6FAE4A" },
-  { id:"water", label:"Water", color:"#4A85B0" },
-  { id:"rent", label:"Rent", color:"#C0604E" },
-  { id:"internet", label:"Internet", color:"#9B7FC7" },
-  { id:"transport", label:"Transport", color:"#D98E4A" },
-  { id:"dining", label:"Dining out", color:"#C97D60" },
-  { id:"medical", label:"Medical", color:"#6FB08A" },
-  { id:"entertainment", label:"Entertainment", color:"#B0699C" },
-  { id:"other", label:"Other", color:"#7C8A93" },
+  { id:"electricity", label:"Electricity", color:"#FFD60A" },
+  { id:"grocery", label:"Grocery", color:"#2ED985" },
+  { id:"dairy", label:"Dairy", color:"#4DCBFF" },
+  { id:"fruitveg", label:"Fruits & vegetables", color:"#8CE83B" },
+  { id:"water", label:"Water", color:"#4D8AFF" },
+  { id:"rent", label:"Rent", color:"#FF4D6D" },
+  { id:"internet", label:"Internet", color:"#9B5CFF" },
+  { id:"transport", label:"Transport", color:"#FF9142" },
+  { id:"dining", label:"Dining out", color:"#FF5CC8" },
+  { id:"medical", label:"Medical", color:"#1FE0C2" },
+  { id:"entertainment", label:"Entertainment", color:"#E85CFF" },
+  { id:"other", label:"Other", color:"#9AA5B1" },
 ];
 const PINNED_TAGS = [];
+
 
 const catById = id => CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length-1];
 const inr = n => new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(n||0);
@@ -475,20 +477,26 @@ function render(){
           ${byCategory.length>0 ? `<span class="mono" style="font-size:11px;color:var(--text-faint);">${esc(inrCompact(total))} &middot; ${byCategory.length} ${byCategory.length===1?"category":"categories"}</span>` : ""}
         </div>
         ${byCategory.length===0 ? `<div style="font-size:13px;color:var(--text-faint);padding:12px 0;">Add an entry to see the breakdown.</div>` :
-          `<div class="cat-list">
-            ${byCategory.slice().reverse().map((c,i)=>{
+          (() => {
+            const asc = byCategory.slice().reverse();
+            const stackSegs = asc.map(c => {
+              const pct = total>0 ? Math.max((c.total/total)*100, 0.6) : 0;
+              return `<span class="cat-stack-seg" style="width:${pct}%;background:${c.color};box-shadow:0 0 6px ${hexToRgba(c.color,0.6)} inset;"></span>`;
+            }).join("");
+            const chips = asc.map((c,i) => {
               const pct = total>0 ? Math.round((c.total/total)*100) : 0;
-              const fillPct = Math.max(pct, c.total !== 0 ? 2 : 0);
               return `
-              <div class="cat-row" style="--stagger:${i}">
-                <div class="cat-row-top">
-                  <span class="cat-row-name">${catBadge(c,22)}${esc(c.label)}</span>
-                  <span class="cat-row-stats"><span class="cat-row-pct">${pct}%</span><span class="mono cat-row-amt">${inr(c.total)}</span></span>
+              <div class="cat-chip" style="--stagger:${i};border-color:${hexToRgba(c.color,0.3)};">
+                <span class="cat-chip-badge" style="background:${hexToRgba(c.color,0.16)};box-shadow:0 0 14px ${hexToRgba(c.color,0.55)},inset 0 0 0 1px ${hexToRgba(c.color,0.45)};">${catIconSvg(c,17)}</span>
+                <div class="cat-chip-info">
+                  <div class="cat-chip-name">${esc(c.label)}</div>
+                  <div class="cat-chip-pct" style="color:${c.color};text-shadow:0 0 12px ${hexToRgba(c.color,0.45)};">${pct}%</div>
+                  <div class="cat-chip-amt mono">${inr(c.total)}</div>
                 </div>
-                <div class="cat-row-track"><span class="cat-row-fill" style="width:${fillPct}%;background:${c.color}${c.total<0?";opacity:.5":""}"></span></div>
               </div>`;
-            }).join("")}
-          </div>`}
+            }).join("");
+            return `<div class="cat-stack">${stackSegs}</div><div class="cat-grid">${chips}</div>`;
+          })()}
       </div>
     </section>
 
