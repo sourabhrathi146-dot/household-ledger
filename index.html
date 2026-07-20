@@ -76,7 +76,7 @@
   .tag-chip{font-size:12px;padding:4px 10px;border-radius:999px;cursor:pointer;border:1px solid var(--border-strong);background:transparent;color:var(--text-muted);}
   .tag-chip.active{border-color:var(--gold);background:rgba(201,162,39,.15);color:var(--gold);}
   .entry-list{border:1px solid var(--border);border-radius:6px;overflow:hidden;}
-  .entry{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--border);opacity:0;animation:fade-up .35s ease forwards;animation-delay:calc(var(--stagger,0) * 40ms);}
+  .entry{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-2);border-top:1px solid var(--border);}
   .entry:first-child{border-top:none;}
   .entry-name{font-size:14px;display:flex;align-items:center;gap:8px;}
   .entry-note{font-size:12px;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -104,16 +104,30 @@
   .drawer-overlay.open{opacity:1;pointer-events:auto;}
   .drawer-panel{position:fixed;top:0;right:0;bottom:0;width:min(300px,84vw);background:var(--surface);border-left:1px solid var(--border-strong);z-index:41;transform:translateX(100%);transition:transform .22s ease;padding:18px;overflow-y:auto;}
   .drawer-panel.open{transform:translateX(0);}
-  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;}
-  .modal-panel{position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:51;background:var(--surface);border:1px solid var(--border-strong);border-bottom:none;border-radius:14px 14px 0 0;width:min(480px,94vw);max-height:80vh;display:flex;flex-direction:column;overflow:hidden;animation:modal-in .2s ease;}
-  @media (min-width:520px){ .modal-panel{bottom:auto;top:50%;transform:translate(-50%,-50%);border-radius:14px;border-bottom:1px solid var(--border-strong);max-height:75vh;} }
-  @keyframes modal-in{from{opacity:0;}to{opacity:1;}}
-  .modal-header{display:flex;align-items:center;gap:10px;padding:16px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
-  .modal-header-text{flex:1;min-width:0;}
-  .modal-title{font-size:15px;font-weight:600;}
-  .modal-subtitle{font-size:12px;color:var(--text-faint);margin-top:2px;}
-  .modal-close{background:none;border:none;color:var(--text-faint);font-size:20px;cursor:pointer;padding:4px;flex-shrink:0;}
-  .modal-body{overflow-y:auto;padding:12px 16px 16px;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;backdrop-filter:blur(1px);}
+  .modal-panel{position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:51;background:var(--surface);border:1px solid var(--border-strong);border-bottom:none;border-radius:18px 18px 0 0;width:min(480px,94vw);max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -12px 40px rgba(0,0,0,.4);}
+  @media (min-width:520px){ .modal-panel{bottom:auto;top:50%;transform:translate(-50%,-50%);border-radius:16px;border-bottom:1px solid var(--border-strong);max-height:75vh;box-shadow:0 20px 60px rgba(0,0,0,.5);} }
+  @keyframes modal-slide-up{from{transform:translate(-50%,16px);opacity:0;}to{transform:translate(-50%,0);opacity:1;}}
+  @keyframes modal-pop{from{transform:translate(-50%,calc(-50% + 10px));opacity:0;}to{transform:translate(-50%,-50%);opacity:1;}}
+  .modal-panel{animation:modal-slide-up .22s ease;}
+  @media (min-width:520px){ .modal-panel{animation:modal-pop .18s ease;} }
+  .modal-drag-handle{width:36px;height:4px;border-radius:99px;background:var(--border-strong);margin:10px auto 2px;flex-shrink:0;}
+  @media (min-width:520px){ .modal-drag-handle{display:none;} }
+  .modal-header{display:flex;align-items:flex-start;gap:12px;padding:14px 18px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .modal-header-text{flex:1;min-width:0;padding-top:3px;}
+  .modal-title{font-size:17px;font-weight:700;color:var(--text);letter-spacing:.1px;}
+  .modal-subtitle{font-size:12.5px;color:var(--text-faint);margin-top:4px;}
+  .modal-subtitle .modal-total{color:var(--text-muted);font-weight:600;}
+  .modal-close{background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);width:30px;height:30px;min-width:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1;cursor:pointer;flex-shrink:0;margin-top:2px;}
+  .modal-close:active{background:var(--border);color:var(--text);}
+  .modal-body{overflow-y:auto;padding:14px 16px 18px;}
+  .modal-body .entry-list{border-radius:10px;}
+  .modal-body .entry:first-child{border-top:none;}
+  .modal-body .entry{padding:12px 14px;background:var(--surface-2);}
+  .modal-body .entry:active{background:var(--surface);}
+  .entry-date-col{min-width:46px;flex-shrink:0;color:var(--text-muted);font-size:12.5px;line-height:1.3;text-align:center;}
+  .entry-date-col .d-num{display:block;font-size:16px;font-weight:700;color:var(--text);}
+  .entry-date-col .d-mon{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-faint);}
   .drawer-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
   .drawer-title{font-size:15px;font-weight:600;}
   .drawer-close{background:none;border:none;color:var(--text-faint);font-size:20px;cursor:pointer;padding:4px;}
@@ -386,18 +400,29 @@ const shortDate = d => new Date(d).toLocaleDateString("en-IN",{day:"numeric",mon
 function entryRowHtml(e, idx, opts){
   const cat = catById(e.category);
   const showCategory = !opts || opts.showCategory !== false;
-  const primaryLine = showCategory
-    ? `${esc(cat.label)} ${e.tag?`<span class="entry-tag">${esc(e.tag)}</span>`:""}`
-    : `<span class="mono" style="flex-shrink:0;">${esc(shortDate(e.date))}</span>${e.note?`<span class="entry-note-inline">${esc(e.note)}</span>`:""}${e.tag?`<span class="entry-tag">${esc(e.tag)}</span>`:""}`;
-  return `<div class="entry" style="--stagger:${idx}">
-                  ${showCategory ? catBadge(cat, 32) : ""}
-                  <div style="flex:1;min-width:0;">
-                    <div class="entry-name">${primaryLine}</div>
-                    ${showCategory && e.note?`<div class="entry-note">${esc(e.note)}</div>`:""}
+  if (!showCategory) {
+    const d = new Date(e.date + "T00:00:00");
+    const dayNum = d.getDate();
+    const monAbbr = d.toLocaleDateString("en-IN", { month: "short" });
+    return `<div class="entry" style="--stagger:${idx}">
+                  <div class="entry-date-col"><span class="d-num">${dayNum}</span><span class="d-mon">${esc(monAbbr)}</span></div>
+                  <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;">
+                    ${e.note?`<span class="entry-note-inline">${esc(e.note)}</span>`:`<span class="entry-note-inline" style="opacity:.5;">No note</span>`}
+                    ${e.tag?`<span class="entry-tag">${esc(e.tag)}</span>`:""}
                   </div>
                   <div class="mono" style="font-size:14px;font-weight:600;">${inr(e.amount)}</div>
                   <button class="btn-icon" data-action="edit-entry" data-id="${e.id}">edit</button>
-                  ${showCategory ? `<button class="btn-icon" data-action="delete-entry" data-id="${e.id}">del</button>` : ""}
+                </div>`;
+  }
+  return `<div class="entry" style="--stagger:${idx}">
+                  ${catBadge(cat, 32)}
+                  <div style="flex:1;min-width:0;">
+                    <div class="entry-name">${esc(cat.label)} ${e.tag?`<span class="entry-tag">${esc(e.tag)}</span>`:""}</div>
+                    ${e.note?`<div class="entry-note">${esc(e.note)}</div>`:""}
+                  </div>
+                  <div class="mono" style="font-size:14px;font-weight:600;">${inr(e.amount)}</div>
+                  <button class="btn-icon" data-action="edit-entry" data-id="${e.id}">edit</button>
+                  <button class="btn-icon" data-action="delete-entry" data-id="${e.id}">del</button>
                 </div>`;
 }
 
@@ -412,11 +437,12 @@ function categoryModalHtml(){
   return `
     <div class="modal-overlay" data-action="close-category-modal"></div>
     <div class="modal-panel">
+      <div class="modal-drag-handle"></div>
       <div class="modal-header">
-        ${catBadge(cat, 32)}
+        ${catBadge(cat, 36)}
         <div class="modal-header-text">
           <div class="modal-title">${esc(cat.label)}</div>
-          <div class="modal-subtitle">${monthLabel(state.cursor)} &middot; ${items.length} ${items.length===1?"entry":"entries"} &middot; ${inr(total)}</div>
+          <div class="modal-subtitle">${monthLabel(state.cursor)} &middot; ${items.length} ${items.length===1?"entry":"entries"} &middot; <span class="modal-total">${inr(total)}</span></div>
         </div>
         <button class="modal-close" data-action="close-category-modal">&times;</button>
       </div>
